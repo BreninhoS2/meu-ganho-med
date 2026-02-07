@@ -59,7 +59,7 @@ export function useEvents() {
     return newEvent;
   }, []);
 
-  const updateEvent = useCallback((id: string, updates: Partial<Omit<MedicalEvent, 'type'>>) => {
+  const updateEvent = useCallback((id: string, updates: Partial<MedicalEvent>) => {
     setEventsState((prev) =>
       prev.map((e) => (e.id === id ? { ...e, ...updates } as MedicalEvent : e))
     );

@@ -2,17 +2,17 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { MedicalEventWithCalculations } from '@/types';
 import { formatCurrency, formatDate, getDaysUntil } from '@/lib/formatters';
-import { getPendingPayments } from '@/lib/calculations';
-import { CheckCircle, AlertCircle, Clock } from 'lucide-react';
+import { CheckCircle, AlertCircle, Clock, Pencil } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface ReceivablesTabProps {
   pendingPayments: MedicalEventWithCalculations[];
   locationMap: Map<string, string>;
   onMarkPaid: (id: string) => void;
+  onEdit?: (event: MedicalEventWithCalculations) => void;
 }
 
-export function ReceivablesTab({ pendingPayments, locationMap, onMarkPaid }: ReceivablesTabProps) {
+export function ReceivablesTab({ pendingPayments, locationMap, onMarkPaid, onEdit }: ReceivablesTabProps) {
   const next7Days = pendingPayments.filter(e => {
     if (!e.paymentDate) return false;
     const days = getDaysUntil(e.paymentDate);
@@ -85,7 +85,7 @@ export function ReceivablesTab({ pendingPayments, locationMap, onMarkPaid }: Rec
               return (
                 <Card key={event.id} className="p-4">
                   <div className="flex items-center justify-between">
-                    <div>
+                    <div className="flex-1 min-w-0">
                       <p className="font-medium text-foreground">
                         {event.type === 'shift' ? `Plantão ${(event as any).duration}` : 'Consulta'}
                       </p>
@@ -107,10 +107,20 @@ export function ReceivablesTab({ pendingPayments, locationMap, onMarkPaid }: Rec
                         </p>
                       )}
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
                       <p className="text-lg font-bold text-money">
                         {formatCurrency(event.netValue)}
                       </p>
+                      {onEdit && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                          onClick={() => onEdit(event)}
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </Button>
+                      )}
                       <Button
                         variant="outline"
                         size="sm"
