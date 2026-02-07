@@ -4,15 +4,18 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ReceivablesTab } from '@/components/finances/ReceivablesTab';
 import { ExpensesTab } from '@/components/finances/ExpensesTab';
 import { ReportsTab } from '@/components/finances/ReportsTab';
+import { EventFormModal } from '@/components/agenda/EventFormModal';
 import { useEvents } from '@/hooks/useEvents';
 import { useExpenses } from '@/hooks/useExpenses';
 import { useLocations } from '@/hooks/useLocations';
 import { useGoals } from '@/hooks/useGoals';
+import { MedicalEventWithCalculations } from '@/types';
 
 export default function FinancesPage() {
   const [activeTab, setActiveTab] = useState('receivables');
+  const [editingEvent, setEditingEvent] = useState<MedicalEventWithCalculations | null>(null);
   
-  const { events, pendingPayments, markAsPaid, getMonthlySummary } = useEvents();
+  const { events, pendingPayments, markAsPaid, updateEvent, removeEvent, addEvent, getMonthlySummary } = useEvents();
   const { 
     expenses, 
     currentMonthExpenses, 
@@ -20,8 +23,16 @@ export default function FinancesPage() {
     addExpense, 
     removeExpense 
   } = useExpenses();
-  const { locations, locationMap } = useLocations();
+  const { locations, locationMap, getLocationDefaults } = useLocations();
   const { currentMonthGoal, setGoal, calculateProgress } = useGoals();
+
+  const handleEditEvent = (event: MedicalEventWithCalculations) => {
+    setEditingEvent(event);
+  };
+
+  const handleCloseForm = () => {
+    setEditingEvent(null);
+  };
 
   return (
     <AppLayout title="Finanças">
@@ -37,6 +48,7 @@ export default function FinancesPage() {
             pendingPayments={pendingPayments}
             locationMap={locationMap}
             onMarkPaid={markAsPaid}
+            onEdit={handleEditEvent}
           />
         </TabsContent>
 
@@ -61,6 +73,23 @@ export default function FinancesPage() {
           />
         </TabsContent>
       </Tabs>
+
+      {/* Edit Event Modal */}
+      {editingEvent && (
+        <EventFormModal
+          type={editingEvent.type}
+          locations={locations}
+          getLocationDefaults={getLocationDefaults}
+          editingEvent={editingEvent}
+          onSubmit={(event) => {
+            addEvent(event);
+            handleCloseForm();
+          }}
+          onUpdate={updateEvent}
+          onDelete={removeEvent}
+          onClose={handleCloseForm}
+        />
+      )}
     </AppLayout>
   );
 }

@@ -2,7 +2,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { MedicalEventWithCalculations, MedicalEvent } from '@/types';
 import { formatCurrency, formatFullDate, EVENT_STATUS_LABELS, PAYMENT_STATUS_LABELS } from '@/lib/formatters';
-import { Clock, Stethoscope, Trash2, CheckCircle, Calendar } from 'lucide-react';
+import { Clock, Stethoscope, Trash2, CheckCircle, Calendar, Pencil } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface EventListProps {
@@ -11,9 +11,10 @@ interface EventListProps {
   onDelete: (id: string) => void;
   onMarkPaid: (id: string) => void;
   onUpdate: (id: string, updates: Partial<Omit<MedicalEvent, 'type'>>) => void;
+  onEdit?: (event: MedicalEventWithCalculations) => void;
 }
 
-export function EventList({ events, locationMap, onDelete, onMarkPaid }: EventListProps) {
+export function EventList({ events, locationMap, onDelete, onMarkPaid, onEdit }: EventListProps) {
   if (events.length === 0) {
     return (
       <Card className="p-8 text-center">
@@ -51,6 +52,7 @@ export function EventList({ events, locationMap, onDelete, onMarkPaid }: EventLi
                   locationName={event.locationId ? locationMap.get(event.locationId) : event.locationName}
                   onDelete={() => onDelete(event.id)}
                   onMarkPaid={() => onMarkPaid(event.id)}
+                  onEdit={onEdit ? () => onEdit(event) : undefined}
                 />
               ))}
             </div>
@@ -65,9 +67,10 @@ interface EventCardProps {
   locationName?: string;
   onDelete: () => void;
   onMarkPaid: () => void;
+  onEdit?: () => void;
 }
 
-function EventCard({ event, locationName, onDelete, onMarkPaid }: EventCardProps) {
+function EventCard({ event, locationName, onDelete, onMarkPaid, onEdit }: EventCardProps) {
   const isShift = event.type === 'shift';
   const isPending = event.paymentStatus === 'pending';
   const isCancelled = event.status === 'cancelled';
@@ -128,6 +131,16 @@ function EventCard({ event, locationName, onDelete, onMarkPaid }: EventCardProps
           </div>
 
           <div className="flex gap-1">
+            {onEdit && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                onClick={onEdit}
+              >
+                <Pencil className="w-4 h-4" />
+              </Button>
+            )}
             {isPending && event.status === 'completed' && (
               <Button
                 variant="ghost"
