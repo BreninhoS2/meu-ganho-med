@@ -44,7 +44,12 @@
     --money: 150 50% 35%;
     --money-foreground: 0 0% 100%;
 
+    /* Warning - amber */
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+
     --destructive: 0 70% 55%;
+    --destructive-foreground: 0 0% 100%;
     --destructive-foreground: 0 0% 100%;
 
     --border: 200 20% 88%;
@@ -86,6 +91,9 @@
 
     --money: 150 45% 45%;
     --money-foreground: 0 0% 100%;
+
+    --warning: 38 80% 55%;
+    --warning-foreground: 0 0% 100%;
 
     --destructive: 0 60% 45%;
     --destructive-foreground: 0 0% 100%;
