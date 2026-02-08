@@ -6,12 +6,16 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Stethoscope, Mail, Lock, User, ArrowLeft, Loader2 } from 'lucide-react';
+import { Stethoscope, Mail, Lock, User, ArrowLeft, Loader2, Eye, EyeOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { PasswordStrengthMeter, getPasswordStrength } from '@/components/auth';
 import { z } from 'zod';
 
 const emailSchema = z.string().email('E-mail inválido');
-const passwordSchema = z.string().min(6, 'Senha deve ter pelo menos 6 caracteres');
+const passwordSchema = z.string()
+  .min(8, 'Senha deve ter pelo menos 8 caracteres')
+  .regex(/[A-Z]/, 'Senha deve ter pelo menos uma letra maiúscula')
+  .regex(/[0-9]/, 'Senha deve ter pelo menos um número');
 const nameSchema = z.string().min(2, 'Nome deve ter pelo menos 2 caracteres');
 
 export default function AuthPage() {
@@ -25,6 +29,7 @@ export default function AuthPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string; name?: string }>({});
 
   useEffect(() => {
@@ -35,7 +40,7 @@ export default function AuthPage() {
 
   useEffect(() => {
     if (user && !authLoading) {
-      navigate('/');
+      navigate('/home');
     }
   }, [user, authLoading, navigate]);
 
@@ -52,7 +57,11 @@ export default function AuthPage() {
 
     if (mode !== 'forgot') {
       try {
-        passwordSchema.parse(password);
+        if (mode === 'signup') {
+          passwordSchema.parse(password);
+        } else {
+          z.string().min(6, 'Senha deve ter pelo menos 6 caracteres').parse(password);
+        }
       } catch (e) {
         if (e instanceof z.ZodError) {
           newErrors.password = e.errors[0].message;
@@ -234,16 +243,31 @@ export default function AuthPage() {
                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                     <Input
                       id="password"
-                      type="password"
+                      type={showPassword ? "text" : "password"}
                       placeholder="••••••••"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="pl-10"
+                      className="pl-10 pr-10"
                       disabled={isLoading}
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                      tabIndex={-1}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="w-4 h-4" />
+                      ) : (
+                        <Eye className="w-4 h-4" />
+                      )}
+                    </button>
                   </div>
                   {errors.password && (
                     <p className="text-sm text-destructive">{errors.password}</p>
+                  )}
+                  {mode === 'signup' && (
+                    <PasswordStrengthMeter password={password} />
                   )}
                 </div>
               )}
