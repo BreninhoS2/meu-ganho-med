@@ -14,14 +14,16 @@ interface ReceivablesTabProps {
 
 export function ReceivablesTab({ pendingPayments, locationMap, onMarkPaid, onEdit }: ReceivablesTabProps) {
   const next7Days = pendingPayments.filter(e => {
-    if (!e.paymentDate) return false;
-    const days = getDaysUntil(e.paymentDate);
+    // Use paymentDate if available, otherwise use event date as fallback
+    const dateToCheck = e.paymentDate || e.date;
+    const days = getDaysUntil(dateToCheck);
     return days >= 0 && days <= 7;
   });
   
   const next30Days = pendingPayments.filter(e => {
-    if (!e.paymentDate) return false;
-    const days = getDaysUntil(e.paymentDate);
+    // Use paymentDate if available, otherwise use event date as fallback
+    const dateToCheck = e.paymentDate || e.date;
+    const days = getDaysUntil(dateToCheck);
     return days >= 0 && days <= 30;
   });
 
