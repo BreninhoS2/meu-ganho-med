@@ -29,8 +29,11 @@ function setItem<T>(key: string, value: T): void {
 export function getEvents(): MedicalEvent[] {
   const events = getItem<MedicalEvent[]>(STORAGE_KEYS.events, []);
   
-  // Migrate legacy shifts if no events exist
-  if (events.length === 0) {
+  // Check if migration has already been done
+  const migrationDone = localStorage.getItem('plantaomed_migration_done');
+  
+  // Migrate legacy shifts only once (if never migrated before)
+  if (!migrationDone && events.length === 0) {
     const legacyShifts = getItem<any[]>(STORAGE_KEYS.legacyShifts, []);
     if (legacyShifts.length > 0) {
       const migratedEvents: MedicalEvent[] = legacyShifts.map((shift) => ({
@@ -46,8 +49,15 @@ export function getEvents(): MedicalEvent[] {
         createdAt: shift.date,
       }));
       setEvents(migratedEvents);
+      // Mark migration as done so it doesn't repeat
+      localStorage.setItem('plantaomed_migration_done', 'true');
       return migratedEvents;
     }
+  }
+  
+  // Mark migration as done even if there were no legacy shifts
+  if (!migrationDone) {
+    localStorage.setItem('plantaomed_migration_done', 'true');
   }
   
   return events;
