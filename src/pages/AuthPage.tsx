@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Stethoscope, Mail, Lock, User, ArrowLeft, Loader2, Eye, EyeOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { PasswordStrengthMeter, getPasswordStrength } from '@/components/auth';
+import { getPlanHomeRoute } from '@/lib/permissions';
 import { z } from 'zod';
 
 const emailSchema = z.string().email('E-mail inválido');
@@ -21,7 +22,7 @@ const nameSchema = z.string().min(2, 'Nome deve ter pelo menos 2 caracteres');
 export default function AuthPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { user, signIn, signUp, resetPassword, isLoading: authLoading } = useAuth();
+  const { user, signIn, signUp, resetPassword, isLoading: authLoading, subscription } = useAuth();
   const { toast } = useToast();
 
   const [mode, setMode] = useState<'login' | 'signup' | 'forgot'>('login');
@@ -40,9 +41,15 @@ export default function AuthPage() {
 
   useEffect(() => {
     if (user && !authLoading) {
-      navigate('/home');
+      // Redirect to plan-specific home if subscribed, otherwise to subscribe page
+      if (subscription.subscribed && subscription.plan) {
+        const homeRoute = getPlanHomeRoute(subscription.plan);
+        navigate(homeRoute);
+      } else {
+        navigate('/subscribe');
+      }
     }
-  }, [user, authLoading, navigate]);
+  }, [user, authLoading, subscription, navigate]);
 
   const validateForm = (): boolean => {
     const newErrors: typeof errors = {};
