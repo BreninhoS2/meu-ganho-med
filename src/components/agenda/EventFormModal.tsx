@@ -37,11 +37,11 @@ interface EventFormModalProps {
   type: EventType;
   locations: Location[];
   getLocationDefaults: (locationId: string, type: EventType, duration?: ShiftDuration) => { grossValue: number; paymentDeadlineDays: number } | null;
-  onSubmit: (event: Omit<MedicalEvent, 'id' | 'createdAt'>) => void;
+  onSubmit: (event: Omit<MedicalEvent, 'id' | 'createdAt'>) => void | Promise<any>;
   onClose: () => void;
   editingEvent?: MedicalEventWithCalculations;
-  onUpdate?: (id: string, updates: Partial<MedicalEvent>) => void;
-  onDelete?: (id: string) => void;
+  onUpdate?: (id: string, updates: Partial<MedicalEvent>) => void | Promise<void>;
+  onDelete?: (id: string) => void | Promise<void>;
 }
 
 export function EventFormModal({ 

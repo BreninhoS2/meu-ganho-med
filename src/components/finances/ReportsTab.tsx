@@ -24,8 +24,8 @@ interface ReportsTabProps {
   locationMap: Map<string, string>;
   getMonthlySummary: (month: number, year: number) => MonthlySummary;
   currentGoal?: number;
-  setGoal: (month: number, year: number, amount: number) => void;
-  calculateProgress: (current: number, target: number) => { percentage: number; remaining: number; achieved: boolean };
+  setGoal: (month: number, year: number, amount: number) => void | Promise<any>;
+  calculateProgress: (current: number, month?: number, year?: number) => { percentage: number; remaining: number; target: number; achieved: boolean };
 }
 
 export function ReportsTab({ 
@@ -68,7 +68,7 @@ export function ReportsTab({
 
   // Current month summary
   const currentSummary = getMonthlySummary(currentMonth, currentYear);
-  const goalProgress = currentGoal ? calculateProgress(currentSummary.totalNet, currentGoal) : null;
+  const goalProgress = currentGoal ? calculateProgress(currentSummary.totalNet, currentMonth, currentYear) : null;
 
   const handleSaveGoal = () => {
     const amount = parseFloat(goalValue);

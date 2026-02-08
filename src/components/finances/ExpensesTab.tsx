@@ -17,8 +17,8 @@ import { Plus, Trash2, X, Receipt } from 'lucide-react';
 interface ExpensesTabProps {
   expenses: Expense[];
   totalExpenses: number;
-  onAdd: (expense: Omit<Expense, 'id' | 'createdAt'>) => void;
-  onRemove: (id: string) => void;
+  onAdd: (expense: Omit<Expense, 'id' | 'createdAt'>) => void | Promise<any>;
+  onRemove: (id: string) => void | Promise<void>;
 }
 
 export function ExpensesTab({ expenses, totalExpenses, onAdd, onRemove }: ExpensesTabProps) {
