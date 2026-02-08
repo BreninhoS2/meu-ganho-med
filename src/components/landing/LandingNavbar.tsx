@@ -3,11 +3,20 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, ChevronDown, Stethoscope, Calendar, DollarSign, BarChart3, Bell, FileText, Settings, Shield, Zap, Target } from "lucide-react";
+import { Menu, X, ChevronDown, Stethoscope, Calendar, DollarSign, BarChart3, Bell, FileText, Settings, Shield, Zap, Target, User, CreditCard, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { supabase } from "@/integrations/supabase/client";
 
 const productItems = [
   { icon: Calendar, label: "Agenda de Plantões", description: "Organize seus plantões e consultas", href: "#recursos" },
@@ -27,12 +36,12 @@ const resourcesItems = [
   { icon: Settings, label: "Configurações", description: "Personalize sua experiência", href: "#recursos" },
 ];
 
-interface DropdownMenuProps {
+interface NavDropdownMenuProps {
   items: typeof productItems;
   isOpen: boolean;
 }
 
-function DropdownMenu({ items, isOpen }: DropdownMenuProps) {
+function NavDropdownMenu({ items, isOpen }: NavDropdownMenuProps) {
   return (
     <AnimatePresence>
       {isOpen && (
@@ -87,6 +96,21 @@ export function LandingNavbar() {
     } else {
       navigate("/subscribe");
     }
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate("/auth");
+  };
+
+  const getUserInitials = () => {
+    if (user?.user_metadata?.name) {
+      return user.user_metadata.name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2);
+    }
+    if (user?.email) {
+      return user.email.slice(0, 2).toUpperCase();
+    }
+    return 'U';
   };
 
   const scrollToSection = (id: string) => {
@@ -162,7 +186,7 @@ export function LandingNavbar() {
                       </button>
                     )}
                     {item.items && (
-                      <DropdownMenu items={item.items} isOpen={openDropdown === item.id} />
+                      <NavDropdownMenu items={item.items} isOpen={openDropdown === item.id} />
                     )}
                   </div>
                 ))}
@@ -173,9 +197,40 @@ export function LandingNavbar() {
             <div className="hidden lg:flex items-center gap-3">
               {user ? (
                 <>
-                  <span className="text-sm text-muted-foreground">
-                    {user.email}
-                  </span>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-accent/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
+                        <Avatar className="h-8 w-8">
+                          <AvatarFallback className="bg-primary/10 text-primary text-sm font-medium">
+                            {getUserInitials()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span className="text-sm text-foreground max-w-[150px] truncate">
+                          {user.user_metadata?.name || user.email}
+                        </span>
+                        <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-56 bg-card border border-border shadow-prominent z-50">
+                      <div className="px-3 py-2 border-b border-border">
+                        <p className="text-sm font-medium">{user.user_metadata?.name || 'Minha Conta'}</p>
+                        <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                      </div>
+                      <DropdownMenuItem onClick={() => navigate("/config")} className="cursor-pointer">
+                        <User className="w-4 h-4 mr-2" />
+                        Minha conta
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => navigate("/subscribe")} className="cursor-pointer">
+                        <CreditCard className="w-4 h-4 mr-2" />
+                        Plano / Assinatura
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-destructive focus:text-destructive">
+                        <LogOut className="w-4 h-4 mr-2" />
+                        Sair
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                   <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                     <Button onClick={handleCTAClick} className="shadow-elevated">
                       {subscription.subscribed ? 'Ir para Agenda' : 'Escolher plano'}
@@ -284,9 +339,39 @@ export function LandingNavbar() {
               <div className="pt-6 space-y-3">
                 {user ? (
                   <>
-                    <p className="text-sm text-center text-muted-foreground mb-2">
-                      {user.email}
-                    </p>
+                    <div className="flex items-center gap-3 p-3 rounded-lg bg-accent/30 mb-4">
+                      <Avatar className="h-10 w-10">
+                        <AvatarFallback className="bg-primary/10 text-primary font-medium">
+                          {getUserInitials()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{user.user_metadata?.name || 'Minha Conta'}</p>
+                        <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                      </div>
+                    </div>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start"
+                      onClick={() => {
+                        navigate("/config");
+                        setMobileMenuOpen(false);
+                      }}
+                    >
+                      <User className="w-4 h-4 mr-2" />
+                      Minha conta
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start"
+                      onClick={() => {
+                        navigate("/subscribe");
+                        setMobileMenuOpen(false);
+                      }}
+                    >
+                      <CreditCard className="w-4 h-4 mr-2" />
+                      Plano / Assinatura
+                    </Button>
                     <Button
                       className="w-full"
                       onClick={() => {
@@ -295,6 +380,17 @@ export function LandingNavbar() {
                       }}
                     >
                       {subscription.subscribed ? 'Ir para Agenda' : 'Escolher plano'}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10"
+                      onClick={() => {
+                        handleLogout();
+                        setMobileMenuOpen(false);
+                      }}
+                    >
+                      <LogOut className="w-4 h-4 mr-2" />
+                      Sair
                     </Button>
                   </>
                 ) : (
