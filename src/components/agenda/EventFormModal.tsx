@@ -272,7 +272,7 @@ export function EventFormModal({
                     <SelectTrigger className="h-12">
                       <SelectValue placeholder="Selecione o local" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="z-[70]">
                       {locations.map((loc) => (
                         <SelectItem key={loc.id} value={loc.id}>{loc.name}</SelectItem>
                       ))}
@@ -301,9 +301,9 @@ export function EventFormModal({
                   <Label className="text-sm text-muted-foreground">Status</Label>
                   <Select value={status} onValueChange={(v) => setStatus(v as EventStatus)}>
                     <SelectTrigger className="h-12">
-                      <SelectValue />
+                      <SelectValue placeholder="Selecione" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="z-[70]">
                       <SelectItem value="scheduled">Agendado</SelectItem>
                       <SelectItem value="completed">Realizado</SelectItem>
                       <SelectItem value="cancelled">Cancelado</SelectItem>
@@ -314,9 +314,9 @@ export function EventFormModal({
                   <Label className="text-sm text-muted-foreground">Pagamento</Label>
                   <Select value={paymentStatus} onValueChange={(v) => setPaymentStatus(v as PaymentStatus)}>
                     <SelectTrigger className="h-12">
-                      <SelectValue />
+                      <SelectValue placeholder="Selecione" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="z-[70]">
                       <SelectItem value="pending">Pendente</SelectItem>
                       <SelectItem value="paid">Pago</SelectItem>
                     </SelectContent>
