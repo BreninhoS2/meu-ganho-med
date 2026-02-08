@@ -165,8 +165,9 @@ export function getPendingPayments(
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
+  // Include both 'scheduled' and 'completed' events, exclude 'cancelled'
   let filtered = events.filter(
-    (e) => e.paymentStatus === 'pending' && e.status === 'completed'
+    (e) => e.paymentStatus === 'pending' && e.status !== 'cancelled'
   );
 
   if (days !== undefined) {
