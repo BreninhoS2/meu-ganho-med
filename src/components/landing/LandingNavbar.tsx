@@ -171,18 +171,33 @@ export function LandingNavbar() {
 
             {/* CTA Buttons */}
             <div className="hidden lg:flex items-center gap-3">
-              <Button
-                variant="ghost"
-                onClick={() => navigate("/auth")}
-                className="text-muted-foreground hover:text-foreground"
-              >
-                Fazer login
-              </Button>
-              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                <Button onClick={handleCTAClick} className="shadow-elevated">
-                  Comece agora
-                </Button>
-              </motion.div>
+              {user ? (
+                <>
+                  <span className="text-sm text-muted-foreground">
+                    {user.email}
+                  </span>
+                  <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                    <Button onClick={handleCTAClick} className="shadow-elevated">
+                      {subscription.subscribed ? 'Ir para Agenda' : 'Escolher plano'}
+                    </Button>
+                  </motion.div>
+                </>
+              ) : (
+                <>
+                  <Button
+                    variant="ghost"
+                    onClick={() => navigate("/auth")}
+                    className="text-muted-foreground hover:text-foreground"
+                  >
+                    Fazer login
+                  </Button>
+                  <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                    <Button onClick={handleCTAClick} className="shadow-elevated">
+                      Comece agora
+                    </Button>
+                  </motion.div>
+                </>
+              )}
             </div>
 
             {/* Mobile Menu Button */}
@@ -267,25 +282,44 @@ export function LandingNavbar() {
               ))}
 
               <div className="pt-6 space-y-3">
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  onClick={() => {
-                    navigate("/auth");
-                    setMobileMenuOpen(false);
-                  }}
-                >
-                  Fazer login
-                </Button>
-                <Button
-                  className="w-full"
-                  onClick={() => {
-                    handleCTAClick();
-                    setMobileMenuOpen(false);
-                  }}
-                >
-                  Comece agora
-                </Button>
+                {user ? (
+                  <>
+                    <p className="text-sm text-center text-muted-foreground mb-2">
+                      {user.email}
+                    </p>
+                    <Button
+                      className="w-full"
+                      onClick={() => {
+                        handleCTAClick();
+                        setMobileMenuOpen(false);
+                      }}
+                    >
+                      {subscription.subscribed ? 'Ir para Agenda' : 'Escolher plano'}
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => {
+                        navigate("/auth");
+                        setMobileMenuOpen(false);
+                      }}
+                    >
+                      Fazer login
+                    </Button>
+                    <Button
+                      className="w-full"
+                      onClick={() => {
+                        handleCTAClick();
+                        setMobileMenuOpen(false);
+                      }}
+                    >
+                      Comece agora
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
           </motion.div>
