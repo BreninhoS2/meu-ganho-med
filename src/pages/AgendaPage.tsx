@@ -6,9 +6,16 @@ import { EventFiltersBar } from '@/components/agenda/EventFiltersBar';
 import { EventFormModal } from '@/components/agenda/EventFormModal';
 import { AddEventButton } from '@/components/agenda/AddEventButton';
 import { ExportButton } from '@/components/agenda/ExportButton';
-import { useEvents } from '@/hooks/useEvents';
-import { useLocations } from '@/hooks/useLocations';
+import { FeatureGate, LockedFeatureButton } from '@/components/subscription';
+import { useDbEvents } from '@/hooks/useDbEvents';
+import { useDbLocations } from '@/hooks/useDbLocations';
+import { useAuth } from '@/contexts/AuthContext';
 import { EventFilters, EventType, MedicalEventWithCalculations } from '@/types';
+import { Loader2, Download } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { generateEventsCSV, downloadCSV } from '@/lib/csv';
+import { generateMonthICS, downloadICS } from '@/lib/ics';
+import { getCurrentMonthName } from '@/lib/formatters';
 
 export default function AgendaPage() {
   const [showForm, setShowForm] = useState(false);
@@ -17,8 +24,9 @@ export default function AgendaPage() {
   const [filters, setFilters] = useState<EventFilters>({});
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   
-  const { events, currentMonthEvents, addEvent, updateEvent, removeEvent, markAsPaid, filterEvents } = useEvents();
-  const { locations, locationMap, getLocationDefaults } = useLocations();
+  const { events, currentMonthEvents, isLoading: eventsLoading, addEvent, updateEvent, removeEvent, markAsPaid, filterEvents } = useDbEvents();
+  const { locations, locationMap, isLoading: locationsLoading, getLocationDefaults } = useDbLocations();
+  const { hasFeature } = useAuth();
 
   // Apply filters and date selection
   const filteredEvents = useMemo(() => {
@@ -51,6 +59,18 @@ export default function AgendaPage() {
     setEditingEvent(null);
   };
 
+  const isLoading = eventsLoading || locationsLoading;
+
+  if (isLoading) {
+    return (
+      <AppLayout title="Agenda">
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      </AppLayout>
+    );
+  }
+
   return (
     <AppLayout title="Agenda">
       <div className="space-y-4">
@@ -74,7 +94,22 @@ export default function AgendaPage() {
             {filteredEvents.length} evento{filteredEvents.length !== 1 ? 's' : ''}
             {selectedDate && ' no dia selecionado'}
           </span>
-          <ExportButton events={filteredEvents} locationMap={locationMap} />
+          
+          {/* Export with gating */}
+          {hasFeature('export_csv') || hasFeature('export_ics') ? (
+            <ExportButton events={filteredEvents} locationMap={locationMap} />
+          ) : (
+            <LockedFeatureButton
+              featureKey="export_csv"
+              featureName="Exportação"
+              variant="ghost"
+              size="sm"
+              className="h-8"
+            >
+              <Download className="w-4 h-4 mr-1" />
+              Exportar
+            </LockedFeatureButton>
+          )}
         </div>
 
         {/* Events List */}
@@ -98,8 +133,8 @@ export default function AgendaPage() {
           locations={locations}
           getLocationDefaults={getLocationDefaults}
           editingEvent={editingEvent ?? undefined}
-          onSubmit={(event) => {
-            addEvent(event);
+          onSubmit={async (event) => {
+            await addEvent(event);
             handleCloseForm();
           }}
           onUpdate={updateEvent}

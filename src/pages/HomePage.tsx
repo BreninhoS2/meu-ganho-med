@@ -1,23 +1,65 @@
+import { useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { AppLayout } from '@/components/navigation';
 import { DashboardSummary } from '@/components/home/DashboardSummary';
 import { UpcomingEvents } from '@/components/home/UpcomingEvents';
 import { QuickInsights } from '@/components/home/QuickInsights';
 import { GoalProgress } from '@/components/home/GoalProgress';
-import { useEvents } from '@/hooks/useEvents';
-import { useGoals } from '@/hooks/useGoals';
-import { useLocations } from '@/hooks/useLocations';
+import { FeatureGate } from '@/components/subscription';
+import { useDbEvents } from '@/hooks/useDbEvents';
+import { useDbGoals } from '@/hooks/useDbGoals';
+import { useDbLocations } from '@/hooks/useDbLocations';
+import { useDataMigration } from '@/hooks/useDataMigration';
+import { useAuth } from '@/contexts/AuthContext';
 import { generateInsights } from '@/lib/calculations';
+import { useToast } from '@/hooks/use-toast';
+import { Loader2 } from 'lucide-react';
 
 export default function HomePage() {
-  const { monthlySummary, upcomingEvents } = useEvents();
-  const { currentMonthGoal } = useGoals();
-  const { locationMap } = useLocations();
+  const [searchParams] = useSearchParams();
+  const { toast } = useToast();
+  const { checkSubscription, hasFeature } = useAuth();
+  const { monthlySummary, upcomingEvents, isLoading: eventsLoading, refetch: refetchEvents } = useDbEvents();
+  const { currentMonthGoal, isLoading: goalsLoading } = useDbGoals();
+  const { locationMap, isLoading: locationsLoading } = useDbLocations();
+  const { migrateData, isMigrating } = useDataMigration();
+
+  // Handle checkout success
+  useEffect(() => {
+    const checkoutStatus = searchParams.get('checkout');
+    if (checkoutStatus === 'success') {
+      toast({
+        title: 'Assinatura realizada!',
+        description: 'Bem-vindo ao PlantãoMed. Seu plano foi ativado.',
+      });
+      checkSubscription();
+      // Remove query param
+      window.history.replaceState({}, '', '/');
+    }
+  }, [searchParams, toast, checkSubscription]);
+
+  // Migrate data on first load
+  useEffect(() => {
+    migrateData();
+  }, [migrateData]);
+
+  const isLoading = eventsLoading || goalsLoading || locationsLoading || isMigrating;
 
   const insights = generateInsights(
-    [], // We'll pass events if needed
+    [],
     monthlySummary,
     currentMonthGoal?.targetAmount
   );
+
+  if (isLoading) {
+    return (
+      <AppLayout>
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>
@@ -25,13 +67,15 @@ export default function HomePage() {
         {/* Main Summary Card */}
         <DashboardSummary summary={monthlySummary} />
         
-        {/* Goal Progress */}
-        {currentMonthGoal && (
-          <GoalProgress 
-            goal={currentMonthGoal.targetAmount} 
-            current={monthlySummary.totalNet} 
-          />
-        )}
+        {/* Goal Progress - Pro feature */}
+        <FeatureGate featureKey="monthly_goals">
+          {currentMonthGoal && (
+            <GoalProgress 
+              goal={currentMonthGoal.targetAmount} 
+              current={monthlySummary.totalNet} 
+            />
+          )}
+        </FeatureGate>
         
         {/* Upcoming Events */}
         <section>

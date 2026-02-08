@@ -47,7 +47,7 @@ export function calculateEventDetails<T extends MedicalEvent>(event: T): T & { n
 
 export function calculateMonthlySummary(
   events: MedicalEventWithCalculations[],
-  expenses: Expense[],
+  expenses: Expense[] | { value: number; date: string }[],
   month: number,
   year: number
 ): MonthlySummary {

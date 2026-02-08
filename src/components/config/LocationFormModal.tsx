@@ -14,7 +14,7 @@ import { Location, LocationType } from '@/types';
 import { X, Plus } from 'lucide-react';
 
 interface LocationFormModalProps {
-  onSubmit: (location: Omit<Location, 'id' | 'createdAt'>) => void;
+  onSubmit: (location: Omit<Location, 'id' | 'createdAt'>) => void | Promise<any>;
   onClose: () => void;
 }
 
