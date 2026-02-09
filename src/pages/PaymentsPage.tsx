@@ -178,9 +178,8 @@ export default function PaymentsPage() {
                 <span className="text-xs">A receber</span>
               </div>
               <p
-                className="text-lg sm:text-xl font-bold text-foreground truncate min-w-0"
-                style={{ fontVariantNumeric: 'tabular-nums' }}
-                title={formatCurrency(totalPending)}
+                className="text-base sm:text-xl font-bold text-foreground min-w-0"
+                style={{ fontVariantNumeric: 'tabular-nums', fontSize: 'clamp(0.85rem, 4vw, 1.25rem)' }}
               >
                 {formatCurrency(totalPending)}
               </p>
@@ -193,9 +192,8 @@ export default function PaymentsPage() {
                 <span className="text-xs">Recebido</span>
               </div>
               <p
-                className="text-lg sm:text-xl font-bold text-primary truncate min-w-0"
-                style={{ fontVariantNumeric: 'tabular-nums' }}
-                title={formatCurrency(totalPaid)}
+                className="text-base sm:text-xl font-bold text-primary min-w-0"
+                style={{ fontVariantNumeric: 'tabular-nums', fontSize: 'clamp(0.85rem, 4vw, 1.25rem)' }}
               >
                 {formatCurrency(totalPaid)}
               </p>
