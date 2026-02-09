@@ -724,30 +724,30 @@ export function FeaturesSection() {
       id="recursos" 
       ref={sectionRef}
       className="relative bg-gradient-to-b from-background via-muted/5 to-background overflow-visible"
-      style={{ minHeight: '300vh' }}
+      style={{ minHeight: '160vh' }}
     >
       {/* Sticky container */}
       <div 
-        className="sticky flex flex-col items-center justify-center overflow-visible"
+        className="sticky flex flex-col items-center overflow-visible"
         style={{ 
           top: '80px', 
           height: 'calc(100vh - 80px)',
         }}
       >
-        <div className="container px-4 h-full flex flex-col py-6">
+        <div className="container px-4 h-full flex flex-col py-4">
           {/* Header */}
-          <div className="text-center mb-4 shrink-0">
+          <div className="text-center mb-3 shrink-0">
             <Badge variant="secondary" className="mb-2">Recursos</Badge>
-            <h2 className="text-3xl lg:text-4xl font-bold text-foreground mb-2">
+            <h2 className="text-2xl lg:text-3xl font-bold text-foreground mb-1">
               Principais recursos
             </h2>
-            <p className="text-base text-muted-foreground max-w-xl mx-auto">
-              Role para explorar os planos. A página fica parada enquanto você navega.
+            <p className="text-sm text-muted-foreground max-w-xl mx-auto">
+              Role para explorar os planos
             </p>
           </div>
 
           {/* Progress indicator */}
-          <div className="mb-4 shrink-0">
+          <div className="mb-3 shrink-0">
             <ProgressIndicator 
               activeIndex={activeStep} 
               scrollProgress={scrollProgress}
@@ -761,7 +761,8 @@ export function FeaturesSection() {
             className="relative flex-1 w-full mx-auto overflow-visible"
             style={{ 
               maxWidth: 'min(980px, 92vw)',
-              minHeight: 'min(580px, calc(100vh - 300px))',
+              minHeight: 'min(480px, calc(100vh - 240px))',
+              maxHeight: 'calc(100vh - 240px)',
             }}
           >
             <AnimatePresence mode="wait" initial={false}>
@@ -775,14 +776,14 @@ export function FeaturesSection() {
 
           {/* Scroll hint */}
           <motion.div 
-            className="text-center mt-4 shrink-0"
+            className="text-center mt-2 shrink-0"
             animate={{ opacity: isLocked ? 0.3 : [0.5, 1, 0.5] }}
             transition={{ duration: 2, repeat: isLocked ? 0 : Infinity }}
           >
             <p className="text-xs text-muted-foreground">
               {planData[activeStep].nextHint}
             </p>
-            <p className="text-xs text-muted-foreground/60 mt-1">
+            <p className="text-xs text-muted-foreground/60 mt-0.5">
               Use ↑↓ ou scroll • {activeStep + 1} de 3
             </p>
           </motion.div>
