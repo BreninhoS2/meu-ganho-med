@@ -88,7 +88,7 @@ export function HowItWorksSection() {
                   
                   {/* Step number badge */}
                   <motion.div 
-                    className="absolute -top-3 left-6 bg-primary text-primary-foreground text-sm font-bold px-4 py-1.5 rounded-full shadow-md"
+                    className="absolute -top-4 left-6 bg-primary text-primary-foreground text-sm font-bold px-4 py-2 rounded-full shadow-md"
                     whileHover={{ scale: 1.05 }}
                   >
                     {step.number}
