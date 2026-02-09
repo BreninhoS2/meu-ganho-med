@@ -107,6 +107,11 @@ export function EventFormModal({
     if (!date || !grossValue) return;
 
     const location = locations.find(l => l.id === locationId);
+    // Derive paidAt from paymentStatus selection
+    const paidAtValue = paymentStatus === 'paid'
+      ? (editingEvent?.paidAt || new Date().toISOString())
+      : undefined;
+
     const baseEvent = {
       date,
       locationId: locationId || undefined,
@@ -117,6 +122,7 @@ export function EventFormModal({
       status,
       paymentStatus,
       paymentDate: paymentDate || undefined,
+      paidAt: paidAtValue,
     };
 
     if (isEditing && onUpdate) {

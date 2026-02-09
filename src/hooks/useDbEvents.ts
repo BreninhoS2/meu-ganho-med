@@ -249,7 +249,7 @@ export function useDbEvents() {
       if (updates.discountType !== undefined) updateData.discount_type = updates.discountType;
       if (updates.status !== undefined) updateData.status = updates.status;
       if (updates.paymentStatus !== undefined) updateData.payment_status = updates.paymentStatus;
-      if (updates.paymentDate !== undefined) updateData.payment_date = updates.paymentDate;
+      if ('paymentDate' in updates) updateData.payment_date = updates.paymentDate || null;
       if ('paidAt' in updates) updateData.paid_at = updates.paidAt || null;
       if (updates.notes !== undefined) updateData.notes = updates.notes;
       
