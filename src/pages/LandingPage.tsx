@@ -5,6 +5,7 @@ import {
   HeroSection,
   HowItWorksSection,
   FeaturesSection,
+  AppPreviewSection,
   PricingSection,
   FAQSection,
   FooterSection,
@@ -17,6 +18,7 @@ export default function LandingPage() {
       <main>
         <HeroSection />
         <FeaturesSection />
+        <AppPreviewSection />
         <HowItWorksSection />
         <PricingSection />
         <FAQSection />
