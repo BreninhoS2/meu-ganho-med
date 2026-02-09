@@ -12,12 +12,12 @@ import {
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background overflow-x-hidden">
       <LandingNavbar />
       <main>
         <HeroSection />
-        <HowItWorksSection />
         <FeaturesSection />
+        <HowItWorksSection />
         <PricingSection />
         <FAQSection />
       </main>

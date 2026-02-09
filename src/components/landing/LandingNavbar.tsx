@@ -3,7 +3,30 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, ChevronDown, Stethoscope, Calendar, DollarSign, BarChart3, Bell, FileText, Settings, Shield, Zap, Target, User, CreditCard, LogOut } from "lucide-react";
+import { 
+  Menu, 
+  X, 
+  ChevronDown, 
+  Stethoscope, 
+  Calendar, 
+  DollarSign, 
+  BarChart3, 
+  Bell, 
+  FileText, 
+  Settings, 
+  Shield, 
+  Target, 
+  User, 
+  CreditCard, 
+  LogOut,
+  Users,
+  GraduationCap,
+  Building2,
+  FileDown,
+  Cloud,
+  Headphones,
+  ArrowRight
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -25,15 +48,17 @@ const productItems = [
 ];
 
 const solutionsItems = [
-  { icon: Stethoscope, label: "Para Médicos", description: "Gestão completa da sua carreira", href: "#como-funciona" },
-  { icon: Target, label: "Metas Mensais", description: "Defina e acompanhe seus objetivos", href: "#recursos" },
-  { icon: Shield, label: "Dados Seguros", description: "Backup na nuvem com criptografia", href: "#recursos" },
+  { icon: Stethoscope, label: "Para Médicos Autônomos", description: "Gestão completa da sua carreira", href: "#como-funciona" },
+  { icon: Building2, label: "Para Clínicas", description: "Organize múltiplos profissionais", href: "#como-funciona" },
+  { icon: GraduationCap, label: "Para Residentes", description: "Comece a organizar cedo", href: "#como-funciona" },
 ];
 
 const resourcesItems = [
+  { icon: FileDown, label: "Exportações", description: "CSV, ICS e relatórios", href: "#recursos" },
   { icon: Bell, label: "Alertas Inteligentes", description: "Notificações de pagamentos", href: "#recursos" },
-  { icon: FileText, label: "Exportações", description: "CSV, ICS e relatórios", href: "#recursos" },
-  { icon: Settings, label: "Configurações", description: "Personalize sua experiência", href: "#recursos" },
+  { icon: Target, label: "Metas Mensais", description: "Acompanhe seu progresso", href: "#recursos" },
+  { icon: Cloud, label: "Backup na Nuvem", description: "Dados sempre seguros", href: "#recursos" },
+  { icon: Headphones, label: "Suporte", description: "Atendimento personalizado", href: "#faq" },
 ];
 
 interface NavDropdownMenuProps {
@@ -50,7 +75,7 @@ function NavDropdownMenu({ items, isOpen }: NavDropdownMenuProps) {
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 10, scale: 0.95 }}
           transition={{ duration: 0.2, ease: "easeOut" }}
-          className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-80 bg-card/95 backdrop-blur-xl border border-border/50 rounded-xl shadow-prominent p-2 z-50"
+          className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-80 bg-card/95 backdrop-blur-xl border border-border/50 rounded-xl shadow-xl p-2 z-50"
         >
           {items.map((item) => (
             <a
@@ -58,7 +83,7 @@ function NavDropdownMenu({ items, isOpen }: NavDropdownMenuProps) {
               href={item.href}
               className="flex items-start gap-3 p-3 rounded-lg hover:bg-accent/50 transition-colors group"
             >
-              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary/20 transition-colors">
+              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary/20 group-hover:scale-110 transition-all">
                 <item.icon className="w-5 h-5 text-primary" />
               </div>
               <div>
@@ -93,14 +118,16 @@ export function LandingNavbar() {
   const handleCTAClick = () => {
     if (user && subscription.subscribed) {
       navigate("/agenda");
-    } else {
+    } else if (user) {
       navigate("/subscribe");
+    } else {
+      navigate("/auth");
     }
   };
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    navigate("/auth");
+    navigate("/");
   };
 
   const getUserInitials = () => {
@@ -127,7 +154,6 @@ export function LandingNavbar() {
     { label: "Recursos", items: resourcesItems, id: "recursos" },
     { label: "Preços", href: "#precos", id: "precos" },
     { label: "FAQ", href: "#faq", id: "faq" },
-    { label: "Contato", href: "#contato", id: "contato" },
   ];
 
   return (
@@ -139,7 +165,7 @@ export function LandingNavbar() {
         className={cn(
           "fixed top-0 left-0 right-0 z-50 transition-all duration-300",
           isScrolled
-            ? "bg-background/80 backdrop-blur-xl border-b border-border/50 shadow-soft"
+            ? "bg-background/80 backdrop-blur-xl border-b border-border/50 shadow-sm"
             : "bg-transparent"
         )}
       >
@@ -148,9 +174,9 @@ export function LandingNavbar() {
             {/* Logo */}
             <Link to="/" className="flex items-center gap-2 group">
               <motion.div
-                whileHover={{ scale: 1.05 }}
+                whileHover={{ scale: 1.05, rotate: 5 }}
                 whileTap={{ scale: 0.95 }}
-                className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center"
+                className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center shadow-md"
               >
                 <Stethoscope className="w-5 h-5 text-primary-foreground" />
               </motion.div>
@@ -169,7 +195,7 @@ export function LandingNavbar() {
                   >
                     {item.items ? (
                       <button
-                        className="flex items-center gap-1 px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                        className="flex items-center gap-1 px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-accent/50"
                       >
                         {item.label}
                         <ChevronDown className={cn(
@@ -180,7 +206,7 @@ export function LandingNavbar() {
                     ) : (
                       <button
                         onClick={() => item.href && scrollToSection(item.href)}
-                        className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                        className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-accent/50"
                       >
                         {item.label}
                       </button>
@@ -211,7 +237,7 @@ export function LandingNavbar() {
                         <ChevronDown className="w-4 h-4 text-muted-foreground" />
                       </button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-56 bg-card border border-border shadow-prominent z-50">
+                    <DropdownMenuContent align="end" className="w-56 bg-card border border-border shadow-xl z-50">
                       <div className="px-3 py-2 border-b border-border">
                         <p className="text-sm font-medium">{user.user_metadata?.name || 'Minha Conta'}</p>
                         <p className="text-xs text-muted-foreground truncate">{user.email}</p>
@@ -231,9 +257,10 @@ export function LandingNavbar() {
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
-                  <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                    <Button onClick={handleCTAClick} className="shadow-elevated">
+                  <motion.div whileHover={{ scale: 1.02, y: -1 }} whileTap={{ scale: 0.98 }}>
+                    <Button onClick={handleCTAClick} className="shadow-md group">
                       {subscription.subscribed ? 'Ir para Agenda' : 'Escolher plano'}
+                      <ArrowRight className="w-4 h-4 ml-1 group-hover:translate-x-0.5 transition-transform" />
                     </Button>
                   </motion.div>
                 </>
@@ -246,9 +273,10 @@ export function LandingNavbar() {
                   >
                     Fazer login
                   </Button>
-                  <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                    <Button onClick={handleCTAClick} className="shadow-elevated">
+                  <motion.div whileHover={{ scale: 1.02, y: -1 }} whileTap={{ scale: 0.98 }}>
+                    <Button onClick={handleCTAClick} className="shadow-md group">
                       Comece agora
+                      <ArrowRight className="w-4 h-4 ml-1 group-hover:translate-x-0.5 transition-transform" />
                     </Button>
                   </motion.div>
                 </>
@@ -260,7 +288,7 @@ export function LandingNavbar() {
               <motion.button
                 whileTap={{ scale: 0.9 }}
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="lg:hidden p-2 text-foreground"
+                className="lg:hidden p-2 text-foreground rounded-lg hover:bg-accent/50"
               >
                 {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
               </motion.button>
