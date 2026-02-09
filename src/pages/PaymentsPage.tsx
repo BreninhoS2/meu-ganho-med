@@ -22,9 +22,9 @@ type PaymentView = {
   paidAt: string | null;
 };
 
-/** Single source of truth for payment status */
-function getPaymentStatus(isPaid: boolean, dueDateStr: string): 'pending' | 'paid' | 'overdue' {
-  if (isPaid) return 'paid';
+/** Single source of truth: uses paidAt (not paymentStatus) */
+function getPaymentStatus(paidAt: string | null | undefined, dueDateStr: string): 'pending' | 'paid' | 'overdue' {
+  if (paidAt) return 'paid';
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const due = new Date(dueDateStr + 'T00:00:00');
@@ -87,13 +87,13 @@ export default function PaymentsPage() {
         }
         if (locationName) title += ` – ${locationName}`;
 
-        // Due date = event date + deadline days (never overridden by paymentDate)
-        const eventDateObj = new Date(event.date + 'T12:00:00');
-        const dueDateObj = addDays(eventDateObj, deadlineDays);
-        const dueDate = format(dueDateObj, 'yyyy-MM-dd');
+        // Due date = paymentDate (from form) or event date + deadline days
+        const dueDate = event.paymentDate
+          ? event.paymentDate
+          : format(addDays(new Date(event.date + 'T12:00:00'), deadlineDays), 'yyyy-MM-dd');
 
-        const isPaid = event.paymentStatus === 'paid';
-        const status = getPaymentStatus(isPaid, dueDate);
+        const paidAt = event.paidAt || null;
+        const status = getPaymentStatus(paidAt, dueDate);
 
         return {
           id: event.id,
@@ -102,7 +102,7 @@ export default function PaymentsPage() {
           dueDate,
           value: event.netValue,
           status,
-          paidAt: isPaid ? (event.paymentDate || null) : null,
+          paidAt,
         };
       });
   }, [events, locationDeadlineMap]);
@@ -141,11 +141,17 @@ export default function PaymentsPage() {
   );
 
   const handleMarkPaid = async (id: string) => {
-    await updateEvent(id, { paymentStatus: 'paid' });
+    await updateEvent(id, {
+      paymentStatus: 'paid',
+      paidAt: new Date().toISOString(),
+    });
   };
 
   const handleUnmarkPaid = async (id: string) => {
-    await updateEvent(id, { paymentStatus: 'pending' });
+    await updateEvent(id, {
+      paymentStatus: 'pending',
+      paidAt: undefined,
+    });
   };
 
   if (isLoading) {
