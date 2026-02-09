@@ -31,7 +31,7 @@ const CONFIG = {
   MIN_DWELL_MS: 1800,          // Tempo mínimo no card antes de poder trocar
   TRANSITION_DURATION: 0.75,   // Duração da animação (segundos)
   TRACKPAD_MULTIPLIER: 0.25,   // Multiplicador menor para trackpad
-  EXIT_THRESHOLD: 700,         // Threshold extra para sair da seção
+  EXIT_ARMED_MS: 600,           // How long to prevent re-pinning after edge exit
   MAX_DELTA_PER_FRAME: 60,     // Limitar delta máximo por evento (mais restritivo)
   TRANSITION_COOLDOWN: 900,    // Cooldown adicional durante transição
 };
@@ -483,7 +483,6 @@ export function FeaturesSection() {
   const accumulatedDelta = useRef(0);
   const lastChangeTime = useRef(0);
   const cardAppearedTime = useRef(Date.now());
-  const exitAccumulator = useRef(0);
   const rafId = useRef<number | null>(null);
   const pendingDelta = useRef(0);
 
@@ -535,13 +534,17 @@ export function FeaturesSection() {
   }, [isPinned, isMobile]);
 
   // IntersectionObserver to detect when card is visible
+  // Respects exitArmed to avoid re-pinning immediately after edge exit
   useEffect(() => {
     if (!stickyRef.current || isMobile) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
-          setIsCardVisible(entry.intersectionRatio >= 0.35);
+          const visible = entry.intersectionRatio >= 0.35;
+          // Don't re-activate if we just exited at an edge
+          if (visible && exitArmed.current) return;
+          setIsCardVisible(visible);
         });
       },
       { threshold: [0, 0.1, 0.2, 0.35, 0.5, 0.75, 1] }
@@ -597,7 +600,7 @@ export function FeaturesSection() {
       lastChangeTime.current = now;
       cardAppearedTime.current = now;
       accumulatedDelta.current = 0;
-      exitAccumulator.current = 0;
+      
       pendingDelta.current = 0;
       setScrollProgress(0);
       setIsLocked(true);
@@ -651,6 +654,29 @@ export function FeaturesSection() {
     rafId.current = null;
   }, [activeStep, changeStep]);
 
+  // Determine if the scrollytelling should consume the scroll event
+  const shouldConsumeScroll = useCallback((deltaY: number): boolean => {
+    const scrollingDown = deltaY > 0;
+    const scrollingUp = deltaY < 0;
+    // At edges: let the page scroll freely
+    if (activeStep === 0 && scrollingUp) return false;
+    if (activeStep === 2 && scrollingDown) return false;
+    return true;
+  }, [activeStep]);
+
+  // Ref to track exit-armed state so IntersectionObserver doesn't re-pin immediately
+  const exitArmed = useRef(false);
+  const exitArmedTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const armExit = useCallback(() => {
+    exitArmed.current = true;
+    if (exitArmedTimeout.current) clearTimeout(exitArmedTimeout.current);
+    // Keep armed for 600ms — enough for the section to leave the viewport
+    exitArmedTimeout.current = setTimeout(() => {
+      exitArmed.current = false;
+    }, 600);
+  }, []);
+
   // Handle wheel events - optimized to avoid forced reflow
   const handleWheel = useCallback((e: WheelEvent) => {
     if (!sectionRef.current) return;
@@ -661,29 +687,37 @@ export function FeaturesSection() {
       updateLayoutCache();
     }
 
-    // Use cached layout values instead of reading DOM on every event
     const layout = cachedLayout.current;
     if (!layout) return;
 
-    // Check if section is in view using cached values
     const isInView = layout.sectionTop <= layout.headerHeight + 100 && 
                      layout.sectionBottom >= layout.viewportHeight - 100;
 
     if (!isInView) {
       setIsPinned(false);
       accumulatedDelta.current = 0;
-      exitAccumulator.current = 0;
       pendingDelta.current = 0;
       setScrollProgress(0);
       return;
     }
 
-    // Only process scroll when card is visible
-    if (!isCardVisible) {
+    if (!isCardVisible) return;
+
+    // ── EDGE EXIT: always check first, even during lock/transition ──
+    if (!shouldConsumeScroll(e.deltaY)) {
+      // Release everything immediately
+      setIsPinned(false);
+      setIsLocked(false);
+      setIsTransitioning(false);
+      accumulatedDelta.current = 0;
+      pendingDelta.current = 0;
+      setScrollProgress(0);
+      armExit();
+      // Do NOT preventDefault — let the page scroll
       return;
     }
 
-    // CRITICAL: Block ALL scroll during transition
+    // Block scroll during transition (but edges already handled above)
     if (isTransitioning || isLocked) {
       e.preventDefault();
       e.stopPropagation();
@@ -694,47 +728,10 @@ export function FeaturesSection() {
     detectTrackpad(e.deltaY);
 
     const rawDelta = e.deltaY;
-    // Clamp delta per frame strongly
     const clampedDelta = Math.sign(rawDelta) * Math.min(Math.abs(rawDelta), CONFIG.MAX_DELTA_PER_FRAME);
     const delta = isTrackpad.current ? clampedDelta * CONFIG.TRACKPAD_MULTIPLIER : clampedDelta;
-    const scrollingDown = delta > 0;
-    const scrollingUp = delta < 0;
 
-    // Handle exit conditions with extra threshold
-    if (scrollingUp && activeStep === 0) {
-      exitAccumulator.current += Math.abs(delta);
-      if (exitAccumulator.current >= CONFIG.EXIT_THRESHOLD) {
-        setIsPinned(false);
-        accumulatedDelta.current = 0;
-        exitAccumulator.current = 0;
-        pendingDelta.current = 0;
-        setScrollProgress(0);
-        return;
-      }
-      e.preventDefault();
-      setIsPinned(true);
-      return;
-    }
-    
-    if (scrollingDown && activeStep === 2) {
-      exitAccumulator.current += Math.abs(delta);
-      if (exitAccumulator.current >= CONFIG.EXIT_THRESHOLD) {
-        setIsPinned(false);
-        accumulatedDelta.current = 0;
-        exitAccumulator.current = 0;
-        pendingDelta.current = 0;
-        setScrollProgress(0);
-        return;
-      }
-      e.preventDefault();
-      setIsPinned(true);
-      return;
-    }
-
-    // Reset exit accumulator if direction changes
-    exitAccumulator.current = 0;
-
-    // Prevent page scroll completely
+    // Prevent page scroll and pin
     e.preventDefault();
     e.stopPropagation();
     setIsPinned(true);
@@ -744,7 +741,7 @@ export function FeaturesSection() {
     if (!rafId.current) {
       rafId.current = requestAnimationFrame(processScroll);
     }
-  }, [activeStep, detectTrackpad, isLocked, isCardVisible, isTransitioning, processScroll, updateLayoutCache]);
+  }, [activeStep, detectTrackpad, isLocked, isCardVisible, isTransitioning, processScroll, updateLayoutCache, shouldConsumeScroll, armExit]);
 
   // Handle touch events for mobile-like gestures
   const touchStartY = useRef(0);
@@ -755,25 +752,36 @@ export function FeaturesSection() {
 
   const handleTouchMove = useCallback((e: TouchEvent) => {
     if (!sectionRef.current || !isCardVisible) return;
-    
-    if (isTransitioning || isLocked) {
-      e.preventDefault();
-      return;
-    }
 
-    // Use cached layout values
     const layout = cachedLayout.current;
     if (!layout) return;
 
     const isInView = layout.sectionTop <= layout.headerHeight + 100 && 
                      layout.sectionBottom >= layout.viewportHeight - 100;
-
     if (!isInView) return;
 
     const touchY = e.touches[0].clientY;
     const deltaY = touchStartY.current - touchY;
-    
+
     if (Math.abs(deltaY) > 10) {
+      // Edge exit check first
+      if (!shouldConsumeScroll(deltaY)) {
+        setIsPinned(false);
+        setIsLocked(false);
+        setIsTransitioning(false);
+        accumulatedDelta.current = 0;
+        pendingDelta.current = 0;
+        setScrollProgress(0);
+        armExit();
+        touchStartY.current = touchY;
+        return; // let page scroll
+      }
+
+      if (isTransitioning || isLocked) {
+        e.preventDefault();
+        return;
+      }
+
       e.preventDefault();
       setIsPinned(true);
       
@@ -786,7 +794,7 @@ export function FeaturesSection() {
       
       touchStartY.current = touchY;
     }
-  }, [isCardVisible, isLocked, isTransitioning, processScroll]);
+  }, [isCardVisible, isLocked, isTransitioning, processScroll, shouldConsumeScroll, armExit]);
 
   // Handle keyboard navigation
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
