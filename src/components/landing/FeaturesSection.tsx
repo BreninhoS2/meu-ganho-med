@@ -728,7 +728,7 @@ export function FeaturesSection() {
       id="recursos" 
       ref={sectionRef}
       className="relative bg-gradient-to-b from-background via-muted/5 to-background overflow-visible"
-      style={{ minHeight: '125vh' }}
+      style={{ minHeight: '105vh' }}
     >
       {/* Sticky container */}
       <div 
