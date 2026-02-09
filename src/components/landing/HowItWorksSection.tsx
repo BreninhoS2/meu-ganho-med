@@ -82,34 +82,34 @@ export function HowItWorksSection() {
                   </div>
                 )}
 
-                <div className={`relative bg-card border border-border/50 rounded-2xl p-6 lg:p-8 shadow-elevated group overflow-hidden h-full`}>
+                <div className={`relative bg-card border border-border/50 rounded-2xl p-8 lg:p-10 shadow-elevated group overflow-hidden h-full min-h-[280px]`}>
                   {/* Gradient background on hover */}
                   <div className={`absolute inset-0 bg-gradient-to-br ${step.color} opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
                   
                   {/* Step number badge */}
                   <motion.div 
-                    className="absolute -top-4 left-6 bg-primary text-primary-foreground text-sm font-bold px-4 py-2 rounded-full shadow-md"
+                    className="absolute -top-3 left-8 bg-primary text-primary-foreground text-sm font-bold w-10 h-10 rounded-full shadow-md flex items-center justify-center"
                     whileHover={{ scale: 1.05 }}
                   >
                     {step.number}
                   </motion.div>
 
                   {/* Content */}
-                  <div className="relative z-10 pt-4">
+                  <div className="relative z-10 pt-6">
                     {/* Icon */}
                     <motion.div 
-                      className={`w-16 h-16 rounded-2xl ${step.iconBg} flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300`}
+                      className={`w-14 h-14 rounded-xl ${step.iconBg} flex items-center justify-center mb-5 group-hover:scale-110 transition-transform duration-300`}
                       whileHover={{ rotate: [0, -5, 5, 0] }}
                       transition={{ duration: 0.5 }}
                     >
-                      <step.icon className={`w-8 h-8 ${step.iconColor}`} />
+                      <step.icon className={`w-7 h-7 ${step.iconColor}`} />
                     </motion.div>
 
                     {/* Text */}
-                    <h3 className="text-xl font-semibold text-foreground mb-3">
+                    <h3 className="text-lg lg:text-xl font-semibold text-foreground mb-3">
                       {step.title}
                     </h3>
-                    <p className="text-muted-foreground leading-relaxed">
+                    <p className="text-sm lg:text-base text-muted-foreground leading-relaxed">
                       {step.description}
                     </p>
                   </div>
