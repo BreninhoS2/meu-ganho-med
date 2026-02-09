@@ -3,25 +3,18 @@ import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/navigation';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { LocationsList } from '@/components/config/LocationsList';
-import { LocationFormModal } from '@/components/config/LocationFormModal';
-import { useDbLocations } from '@/hooks/useDbLocations';
+
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { STRIPE_PLANS } from '@/lib/stripe';
 import { getPlanHomeRoute } from '@/lib/permissions';
-import { Building2, Plus, Database, Info, User, CreditCard, LogOut, Crown, Loader2, Home } from 'lucide-react';
+import { Database, Info, User, CreditCard, LogOut, Crown, Loader2, Home } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { Location } from '@/types';
-
 export default function ConfigPage() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user, subscription, signOut } = useAuth();
-  const [showLocationForm, setShowLocationForm] = useState(false);
-  const [editingLocation, setEditingLocation] = useState<Location | null>(null);
   const [isLoadingPortal, setIsLoadingPortal] = useState(false);
-  const { locations, isLoading, addLocation, updateLocation, removeLocation, getLocationById } = useDbLocations();
 
   const currentPlan = subscription.plan ? STRIPE_PLANS[subscription.plan] : null;
 
@@ -55,28 +48,7 @@ export default function ConfigPage() {
     navigate(homeRoute);
   };
 
-  const handleEditLocation = (id: string) => {
-    const location = getLocationById(id);
-    if (location) {
-      setEditingLocation(location);
-      setShowLocationForm(true);
-    }
-  };
 
-  const handleCloseForm = () => {
-    setShowLocationForm(false);
-    setEditingLocation(null);
-  };
-
-  if (isLoading) {
-    return (
-      <AppLayout title="Configurações">
-        <div className="flex items-center justify-center h-64">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
-        </div>
-      </AppLayout>
-    );
-  }
 
   return (
     <AppLayout title="Configurações">
@@ -127,26 +99,6 @@ export default function ConfigPage() {
           </Card>
         </section>
 
-        {/* Locations section */}
-        <section>
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <Building2 className="w-5 h-5 text-primary" />
-              <h2 className="font-semibold text-foreground">Locais</h2>
-            </div>
-            <Button size="sm" onClick={() => { setEditingLocation(null); setShowLocationForm(true); }}>
-              <Plus className="w-4 h-4 mr-1" />
-              Adicionar
-            </Button>
-          </div>
-          
-          <LocationsList 
-            locations={locations}
-            onEdit={handleEditLocation}
-            onDelete={removeLocation}
-          />
-        </section>
-
         {/* Data section */}
         <section>
           <div className="flex items-center gap-2 mb-4">
@@ -180,20 +132,6 @@ export default function ConfigPage() {
         </section>
       </div>
 
-      {showLocationForm && (
-        <LocationFormModal
-          editingLocation={editingLocation ?? undefined}
-          onSubmit={async (locationData) => {
-            if (editingLocation) {
-              await updateLocation(editingLocation.id, locationData);
-            } else {
-              await addLocation(locationData);
-            }
-            handleCloseForm();
-          }}
-          onClose={handleCloseForm}
-        />
-      )}
     </AppLayout>
   );
 }
