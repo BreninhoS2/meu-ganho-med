@@ -265,18 +265,18 @@ function HeroCard({ plan, direction }: HeroCardProps) {
           boxShadow: '0 20px 40px -12px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(0, 0, 0, 0.05)',
         }}
       >
-        <div className="h-full flex flex-col lg:flex-row p-4 lg:p-6 gap-4 lg:gap-6">
+        <div className="h-full flex flex-col lg:flex-row p-4 lg:p-6 gap-4 lg:gap-8">
           {/* Content side */}
-          <div className="flex-1 flex flex-col">
-            {/* Header */}
-            <div className="flex items-center gap-3 mb-3">
+          <div className="flex-[1.15] flex flex-col">
+            {/* Header - compact */}
+            <div className="flex items-center gap-3 mb-2">
               <motion.div 
-                className={`w-12 h-12 rounded-xl ${plan.badgeBg} flex items-center justify-center shadow-md`}
+                className={`w-11 h-11 rounded-xl ${plan.badgeBg} flex items-center justify-center shadow-md`}
                 initial={{ scale: 0.8, rotate: -10 }}
                 animate={{ scale: 1, rotate: 0 }}
                 transition={{ delay: 0.2, duration: 0.4, ease: "easeOut" }}
               >
-                <PlanIcon className="w-6 h-6" />
+                <PlanIcon className="w-5 h-5" />
               </motion.div>
               <div>
                 <div className="flex items-center gap-2">
@@ -287,8 +287,8 @@ function HeroCard({ plan, direction }: HeroCardProps) {
               </div>
             </div>
 
-            {/* Bullets with staggered animation */}
-            <div className="space-y-3 mb-4 flex-1">
+            {/* Bullets with staggered animation - pushed down */}
+            <div className="space-y-3 mt-4 lg:mt-6 flex-1">
               {plan.bullets.map((bullet, i) => (
                 <motion.div 
                   key={i} 
@@ -324,7 +324,7 @@ function HeroCard({ plan, direction }: HeroCardProps) {
           </div>
 
           {/* Illustration side - narrower */}
-          <div className="w-[38%] relative hidden lg:block">
+          <div className="flex-[0.85] relative hidden lg:block">
             <IllustrationPanel plan={plan} isActive={true} />
           </div>
         </div>
@@ -489,6 +489,7 @@ export function FeaturesSection() {
   const [direction, setDirection] = useState<'down' | 'up'>('down');
   const [isPinned, setIsPinned] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
+  const [isTransitioning, setIsTransitioning] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
   const [isCardVisible, setIsCardVisible] = useState(false);
   
@@ -502,6 +503,18 @@ export function FeaturesSection() {
   const isTrackpad = useRef(false);
   const lastDeltaTime = useRef(0);
   const deltaHistory = useRef<number[]>([]);
+
+  // Lock body scroll when pinned
+  useEffect(() => {
+    if (isPinned && !isMobile) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isPinned, isMobile]);
 
   // IntersectionObserver to detect when card is visible
   useEffect(() => {
@@ -566,11 +579,17 @@ export function FeaturesSection() {
       exitAccumulator.current = 0;
       setScrollProgress(0);
       setIsLocked(true);
+      setIsTransitioning(true);
       
       // Unlock after lock duration
       setTimeout(() => {
         setIsLocked(false);
       }, CONFIG.LOCK_MS);
+      
+      // End transition after animation completes
+      setTimeout(() => {
+        setIsTransitioning(false);
+      }, CONFIG.TRANSITION_DURATION * 1000 + 100);
       
       return true;
     }
@@ -602,6 +621,12 @@ export function FeaturesSection() {
 
     // Only process scroll when card is visible (at least 35% in viewport)
     if (!isCardVisible) {
+      return;
+    }
+
+    // Block all scroll during transition animation
+    if (isTransitioning) {
+      e.preventDefault();
       return;
     }
 
@@ -674,7 +699,7 @@ export function FeaturesSection() {
       const newStep = activeStep + (currentDirection === 'down' ? 1 : -1);
       changeStep(newStep, currentDirection);
     }
-  }, [activeStep, changeStep, detectTrackpad, isLocked, isCardVisible]);
+  }, [activeStep, changeStep, detectTrackpad, isLocked, isCardVisible, isTransitioning]);
 
   // Handle keyboard navigation
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
