@@ -269,38 +269,38 @@ function HeroCard({ plan, direction }: HeroCardProps) {
           {/* Content side */}
           <div className="flex-1 flex flex-col">
             {/* Header */}
-            <div className="flex items-center gap-2.5 mb-3">
+            <div className="flex items-center gap-3 mb-3">
               <motion.div 
-                className={`w-11 h-11 rounded-xl ${plan.badgeBg} flex items-center justify-center shadow-md`}
+                className={`w-12 h-12 rounded-xl ${plan.badgeBg} flex items-center justify-center shadow-md`}
                 initial={{ scale: 0.8, rotate: -10 }}
                 animate={{ scale: 1, rotate: 0 }}
                 transition={{ delay: 0.2, duration: 0.4, ease: "easeOut" }}
               >
-                <PlanIcon className="w-5 h-5" />
+                <PlanIcon className="w-6 h-6" />
               </motion.div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h3 className="text-xl lg:text-2xl font-bold text-foreground">Plano {plan.name}</h3>
+                  <h3 className="text-2xl lg:text-3xl font-bold text-foreground">Plano {plan.name}</h3>
                   <Badge className={`${plan.badgeBg} text-xs`}>{plan.name}</Badge>
                 </div>
-                <p className="text-xs lg:text-sm text-muted-foreground">{plan.tagline}</p>
+                <p className="text-sm lg:text-base text-muted-foreground">{plan.tagline}</p>
               </div>
             </div>
 
             {/* Bullets with staggered animation */}
-            <div className="space-y-2 mb-4 flex-1">
+            <div className="space-y-3 mb-4 flex-1">
               {plan.bullets.map((bullet, i) => (
                 <motion.div 
                   key={i} 
-                  className="flex items-start gap-2"
+                  className="flex items-start gap-2.5"
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.3 + i * 0.05, duration: 0.4 }}
                 >
-                  <div className={`w-4 h-4 rounded-full ${plan.badgeBg} flex items-center justify-center shrink-0 mt-0.5`}>
-                    <Check className="w-2.5 h-2.5" />
+                  <div className={`w-5 h-5 rounded-full ${plan.badgeBg} flex items-center justify-center shrink-0 mt-0.5`}>
+                    <Check className="w-3 h-3" />
                   </div>
-                  <span className="text-sm text-foreground">{bullet}</span>
+                  <span className="text-sm lg:text-base text-foreground">{bullet}</span>
                 </motion.div>
               ))}
             </div>
@@ -484,11 +484,13 @@ function MobileCard({ plan }: { plan: typeof planData[0] }) {
 export function FeaturesSection() {
   const isMobile = useIsMobile();
   const sectionRef = useRef<HTMLDivElement>(null);
+  const stickyRef = useRef<HTMLDivElement>(null);
   const [activeStep, setActiveStep] = useState(0);
   const [direction, setDirection] = useState<'down' | 'up'>('down');
   const [isPinned, setIsPinned] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
+  const [isCardVisible, setIsCardVisible] = useState(false);
   
   // Refs for scroll control
   const accumulatedDelta = useRef(0);
@@ -500,6 +502,25 @@ export function FeaturesSection() {
   const isTrackpad = useRef(false);
   const lastDeltaTime = useRef(0);
   const deltaHistory = useRef<number[]>([]);
+
+  // IntersectionObserver to detect when card is visible
+  useEffect(() => {
+    if (!stickyRef.current || isMobile) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          // Card is considered visible when at least 35% is in viewport
+          setIsCardVisible(entry.intersectionRatio >= 0.35);
+        });
+      },
+      { threshold: [0, 0.1, 0.2, 0.35, 0.5, 0.75, 1] }
+    );
+
+    observer.observe(stickyRef.current);
+
+    return () => observer.disconnect();
+  }, [isMobile]);
 
   const detectTrackpad = useCallback((deltaY: number) => {
     const now = Date.now();
@@ -579,6 +600,11 @@ export function FeaturesSection() {
       return;
     }
 
+    // Only process scroll when card is visible (at least 35% in viewport)
+    if (!isCardVisible) {
+      return;
+    }
+
     // Detect input type
     detectTrackpad(e.deltaY);
 
@@ -648,7 +674,7 @@ export function FeaturesSection() {
       const newStep = activeStep + (currentDirection === 'down' ? 1 : -1);
       changeStep(newStep, currentDirection);
     }
-  }, [activeStep, changeStep, detectTrackpad, isLocked]);
+  }, [activeStep, changeStep, detectTrackpad, isLocked, isCardVisible]);
 
   // Handle keyboard navigation
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
@@ -732,6 +758,7 @@ export function FeaturesSection() {
     >
       {/* Sticky container */}
       <div 
+        ref={stickyRef}
         className="sticky flex flex-col items-center overflow-visible"
         style={{ 
           top: '64px', 
