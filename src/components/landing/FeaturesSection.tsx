@@ -109,11 +109,12 @@ function FloatingIcon({
         rotate: [0, 5, 0, -5, 0],
         scale: 1,
       }}
+      exit={{ opacity: 0, scale: 0.5 }}
       transition={{
         opacity: { duration: 3, repeat: Infinity, delay },
         y: { duration: 4, repeat: Infinity, delay, ease: "easeInOut" },
         rotate: { duration: 6, repeat: Infinity, delay },
-        scale: { duration: 0.5, delay: delay * 0.2 },
+        scale: { duration: 0.4, delay: delay * 0.15 },
       }}
     >
       <Icon className="w-6 h-6 lg:w-7 lg:h-7" />
@@ -161,12 +162,12 @@ function IllustrationPanel({ plan, isActive }: { plan: typeof planData[0]; isAct
       </motion.div>
 
       {/* Floating icons */}
-      <AnimatePresence>
+      <AnimatePresence mode="wait">
         {isActive && plan.floatingIcons.map((icon, i) => (
           <FloatingIcon 
-            key={i}
+            key={`${plan.id}-${i}`}
             icon={icon}
-            delay={i * 0.3}
+            delay={i * 0.2}
             position={positions[i]}
             color={colorClasses[plan.color]}
           />
@@ -188,35 +189,36 @@ function IllustrationPanel({ plan, isActive }: { plan: typeof planData[0]; isAct
   );
 }
 
+// Directional card animation variants
+const getCardVariants = (direction: 'down' | 'up') => ({
+  initial: {
+    y: direction === 'down' ? 100 : -100,
+    opacity: 0,
+    scale: 0.95,
+    filter: 'blur(4px)',
+  },
+  animate: {
+    y: 0,
+    opacity: 1,
+    scale: 1,
+    filter: 'blur(0px)',
+  },
+  exit: {
+    y: direction === 'down' ? -100 : 100,
+    opacity: 0,
+    scale: 0.95,
+    filter: 'blur(4px)',
+  },
+});
+
 interface HeroCardProps {
   plan: typeof planData[0];
-  index: number;
-  activeIndex: number;
+  direction: 'down' | 'up';
 }
 
-function HeroCard({ plan, index, activeIndex }: HeroCardProps) {
+function HeroCard({ plan, direction }: HeroCardProps) {
   const PlanIcon = plan.icon;
-  const isActive = index === activeIndex;
-  const isPast = index < activeIndex;
-  const isFuture = index > activeIndex;
-
-  const getTransformValues = () => {
-    if (isPast) {
-      return { y: -80, scale: 0.9, opacity: 0, zIndex: 0 };
-    }
-    if (isActive) {
-      return { y: 0, scale: 1, opacity: 1, zIndex: 30 };
-    }
-    const offset = index - activeIndex;
-    return { 
-      y: offset * 24, 
-      scale: 1 - offset * 0.05, 
-      opacity: 0.6 - offset * 0.2,
-      zIndex: 20 - offset 
-    };
-  };
-
-  const { y, scale, opacity, zIndex } = getTransformValues();
+  const variants = getCardVariants(direction);
 
   const scrollToSection = () => {
     const element = document.querySelector("#precos");
@@ -227,22 +229,27 @@ function HeroCard({ plan, index, activeIndex }: HeroCardProps) {
 
   return (
     <motion.div
-      animate={{ y, scale, opacity }}
-      transition={{ duration: 0.25, ease: [0.25, 0.1, 0.25, 1] }}
-      style={{ zIndex }}
-      className={`absolute inset-0 ${isPast ? 'pointer-events-none' : ''}`}
+      key={plan.id}
+      variants={variants}
+      initial="initial"
+      animate="animate"
+      exit="exit"
+      transition={{ 
+        duration: 0.4, 
+        ease: [0.25, 0.1, 0.25, 1],
+        filter: { duration: 0.3 },
+      }}
+      className="absolute inset-0"
     >
       <div 
         className={`
           h-full w-full rounded-3xl border-2 ${plan.borderColor}
           bg-gradient-to-br ${plan.bgGradient} bg-card
           shadow-2xl overflow-visible
-          ${isActive ? 'ring-2 ring-offset-2 ring-offset-background' : ''}
+          ring-2 ring-offset-2 ring-offset-background ring-transparent
         `}
         style={{
-          boxShadow: isActive 
-            ? '0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.05)' 
-            : '0 10px 30px -10px rgba(0, 0, 0, 0.15)',
+          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.05)',
         }}
       >
         <div className="h-full flex flex-col lg:flex-row p-6 lg:p-10 gap-6 lg:gap-10">
@@ -250,9 +257,14 @@ function HeroCard({ plan, index, activeIndex }: HeroCardProps) {
           <div className="flex-1 flex flex-col justify-center">
             {/* Header */}
             <div className="flex items-center gap-3 mb-4">
-              <div className={`w-14 h-14 rounded-2xl ${plan.badgeBg} flex items-center justify-center shadow-lg`}>
+              <motion.div 
+                className={`w-14 h-14 rounded-2xl ${plan.badgeBg} flex items-center justify-center shadow-lg`}
+                initial={{ scale: 0.8, rotate: -10 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{ delay: 0.1, duration: 0.3 }}
+              >
                 <PlanIcon className="w-7 h-7" />
-              </div>
+              </motion.div>
               <div>
                 <div className="flex items-center gap-2">
                   <h3 className="text-2xl lg:text-3xl font-bold text-foreground">Plano {plan.name}</h3>
@@ -262,15 +274,15 @@ function HeroCard({ plan, index, activeIndex }: HeroCardProps) {
               </div>
             </div>
 
-            {/* Bullets */}
+            {/* Bullets with staggered animation */}
             <div className="space-y-3 mb-6 flex-1">
               {plan.bullets.map((bullet, i) => (
                 <motion.div 
                   key={i} 
                   className="flex items-start gap-3"
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: isActive ? 1 : 0.6, x: 0 }}
-                  transition={{ delay: isActive ? i * 0.04 : 0, duration: 0.2 }}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.15 + i * 0.05, duration: 0.3 }}
                 >
                   <div className={`w-5 h-5 rounded-full ${plan.badgeBg} flex items-center justify-center shrink-0 mt-0.5`}>
                     <Check className="w-3 h-3" />
@@ -281,19 +293,25 @@ function HeroCard({ plan, index, activeIndex }: HeroCardProps) {
             </div>
 
             {/* CTA */}
-            <Button 
-              onClick={scrollToSection}
-              variant={index === 1 ? "default" : "outline"}
-              size="lg"
-              className="w-full lg:w-auto lg:px-8 font-semibold shadow-lg"
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4, duration: 0.3 }}
             >
-              Ver detalhes do plano {plan.name}
-            </Button>
+              <Button 
+                onClick={scrollToSection}
+                variant={plan.id === "pro" ? "default" : "outline"}
+                size="lg"
+                className="w-full lg:w-auto lg:px-8 font-semibold shadow-lg"
+              >
+                Ver detalhes do plano {plan.name}
+              </Button>
+            </motion.div>
           </div>
 
           {/* Illustration side */}
           <div className="flex-1 relative hidden lg:block">
-            <IllustrationPanel plan={plan} isActive={isActive} />
+            <IllustrationPanel plan={plan} isActive={true} />
           </div>
         </div>
       </div>
@@ -398,10 +416,53 @@ function MobileCard({ plan }: { plan: typeof planData[0] }) {
 export function FeaturesSection() {
   const isMobile = useIsMobile();
   const sectionRef = useRef<HTMLDivElement>(null);
-  const [activeIndex, setActiveIndex] = useState(0);
+  const [activeStep, setActiveStep] = useState(0); // 0 = Start, 1 = Pro, 2 = Premium
+  const [direction, setDirection] = useState<'down' | 'up'>('down');
   const [isPinned, setIsPinned] = useState(false);
-  const progressRef = useRef(0);
-  const accumulatedDeltaRef = useRef(0);
+  
+  // Anti-skip: accumulated delta and cooldown
+  const accumulatedDelta = useRef(0);
+  const lastChangeTime = useRef(0);
+  const DELTA_THRESHOLD = 100; // Wheel delta needed to trigger a step change
+  const COOLDOWN_MS = 300; // Minimum time between step changes
+
+  // Step-based navigation with anti-skip
+  const changeStep = useCallback((newStep: number, newDirection: 'down' | 'up') => {
+    const now = Date.now();
+    
+    // Enforce cooldown
+    if (now - lastChangeTime.current < COOLDOWN_MS) {
+      return false;
+    }
+    
+    // Clamp step to valid range
+    const clampedStep = Math.max(0, Math.min(2, newStep));
+    
+    // Only allow 1 step at a time
+    const stepDiff = Math.abs(clampedStep - activeStep);
+    if (stepDiff > 1) {
+      // Force single step
+      const targetStep = activeStep + (newDirection === 'down' ? 1 : -1);
+      if (targetStep >= 0 && targetStep <= 2 && targetStep !== activeStep) {
+        setDirection(newDirection);
+        setActiveStep(targetStep);
+        lastChangeTime.current = now;
+        accumulatedDelta.current = 0;
+        return true;
+      }
+      return false;
+    }
+    
+    if (clampedStep !== activeStep) {
+      setDirection(newDirection);
+      setActiveStep(clampedStep);
+      lastChangeTime.current = now;
+      accumulatedDelta.current = 0;
+      return true;
+    }
+    
+    return false;
+  }, [activeStep]);
 
   // Handle wheel events for pinned scrolling
   const handleWheel = useCallback((e: WheelEvent) => {
@@ -415,61 +476,95 @@ export function FeaturesSection() {
     // Check if section is in view for pinning
     const sectionTop = rect.top;
     const sectionBottom = rect.bottom;
-    const isInView = sectionTop <= headerHeight + 50 && sectionBottom >= viewportHeight;
+    const isInView = sectionTop <= headerHeight + 100 && sectionBottom >= viewportHeight - 100;
 
     if (!isInView) {
       setIsPinned(false);
+      accumulatedDelta.current = 0;
       return;
     }
 
-    // We're in the pinned zone
     const delta = e.deltaY;
-    const sensitivity = 0.003; // Adjust for scroll sensitivity
-
-    // Calculate new progress
-    let newProgress = progressRef.current + (delta * sensitivity);
-    newProgress = Math.max(0, Math.min(1, newProgress));
-
-    // Determine if we should allow exit
     const scrollingDown = delta > 0;
     const scrollingUp = delta < 0;
-    const atStart = progressRef.current <= 0;
-    const atEnd = progressRef.current >= 1;
 
-    // Allow exit only at boundaries
-    if (scrollingUp && atStart && activeIndex === 0) {
+    // Check exit conditions
+    if (scrollingUp && activeStep === 0) {
+      // At Start and scrolling up - allow exit
       setIsPinned(false);
-      return; // Let page scroll up
+      accumulatedDelta.current = 0;
+      return;
     }
     
-    if (scrollingDown && atEnd && activeIndex === 2) {
+    if (scrollingDown && activeStep === 2) {
+      // At Premium and scrolling down - allow exit
       setIsPinned(false);
-      return; // Let page scroll down
+      accumulatedDelta.current = 0;
+      return;
     }
 
-    // Otherwise, prevent default scroll and update progress
+    // We're in pinned mode - prevent page scroll
     e.preventDefault();
     setIsPinned(true);
-    progressRef.current = newProgress;
 
-    // Update active index based on progress thresholds
-    let newIndex = 0;
-    if (newProgress >= 0.67) {
-      newIndex = 2;
-    } else if (newProgress >= 0.33) {
-      newIndex = 1;
+    // Accumulate delta
+    accumulatedDelta.current += delta;
+
+    // Check if threshold reached for step change
+    if (Math.abs(accumulatedDelta.current) >= DELTA_THRESHOLD) {
+      const newDirection = accumulatedDelta.current > 0 ? 'down' : 'up';
+      const newStep = activeStep + (newDirection === 'down' ? 1 : -1);
+      changeStep(newStep, newDirection);
+    }
+  }, [activeStep, changeStep]);
+
+  // Handle keyboard navigation
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    if (!isPinned && !sectionRef.current) return;
+
+    const section = sectionRef.current;
+    if (!section) return;
+
+    const rect = section.getBoundingClientRect();
+    const viewportHeight = window.innerHeight;
+    const headerHeight = 80;
+    const isInView = rect.top <= headerHeight + 100 && rect.bottom >= viewportHeight - 100;
+
+    if (!isInView) return;
+
+    let handled = false;
+
+    switch (e.key) {
+      case 'ArrowDown':
+      case 'PageDown':
+        if (activeStep < 2) {
+          e.preventDefault();
+          changeStep(activeStep + 1, 'down');
+          handled = true;
+        }
+        break;
+      case 'ArrowUp':
+      case 'PageUp':
+        if (activeStep > 0) {
+          e.preventDefault();
+          changeStep(activeStep - 1, 'up');
+          handled = true;
+        }
+        break;
     }
 
-    if (newIndex !== activeIndex) {
-      setActiveIndex(newIndex);
+    if (handled) {
+      setIsPinned(true);
     }
-  }, [activeIndex]);
+  }, [activeStep, changeStep, isPinned]);
 
-  // Handle touch events for mobile pinned scrolling
+  // Touch handling for mobile trackpads
   const touchStartY = useRef(0);
-  
+  const touchAccumulated = useRef(0);
+
   const handleTouchStart = useCallback((e: TouchEvent) => {
     touchStartY.current = e.touches[0].clientY;
+    touchAccumulated.current = 0;
   }, []);
 
   const handleTouchMove = useCallback((e: TouchEvent) => {
@@ -480,10 +575,7 @@ export function FeaturesSection() {
     const viewportHeight = window.innerHeight;
     const headerHeight = 80;
 
-    const sectionTop = rect.top;
-    const sectionBottom = rect.bottom;
-    const isInView = sectionTop <= headerHeight + 50 && sectionBottom >= viewportHeight;
-
+    const isInView = rect.top <= headerHeight + 100 && rect.bottom >= viewportHeight - 100;
     if (!isInView) {
       setIsPinned(false);
       return;
@@ -493,55 +585,50 @@ export function FeaturesSection() {
     const delta = touchStartY.current - touchY;
     touchStartY.current = touchY;
 
-    const sensitivity = 0.008;
-    let newProgress = progressRef.current + (delta * sensitivity);
-    newProgress = Math.max(0, Math.min(1, newProgress));
-
     const scrollingDown = delta > 0;
     const scrollingUp = delta < 0;
-    const atStart = progressRef.current <= 0;
-    const atEnd = progressRef.current >= 1;
 
-    if (scrollingUp && atStart && activeIndex === 0) {
+    // Check exit conditions
+    if (scrollingUp && activeStep === 0) {
       setIsPinned(false);
       return;
     }
     
-    if (scrollingDown && atEnd && activeIndex === 2) {
+    if (scrollingDown && activeStep === 2) {
       setIsPinned(false);
       return;
     }
 
     e.preventDefault();
     setIsPinned(true);
-    progressRef.current = newProgress;
 
-    let newIndex = 0;
-    if (newProgress >= 0.67) {
-      newIndex = 2;
-    } else if (newProgress >= 0.33) {
-      newIndex = 1;
-    }
+    // Accumulate touch delta
+    touchAccumulated.current += delta;
 
-    if (newIndex !== activeIndex) {
-      setActiveIndex(newIndex);
+    const TOUCH_THRESHOLD = 60;
+    if (Math.abs(touchAccumulated.current) >= TOUCH_THRESHOLD) {
+      const newDirection = touchAccumulated.current > 0 ? 'down' : 'up';
+      const newStep = activeStep + (newDirection === 'down' ? 1 : -1);
+      if (changeStep(newStep, newDirection)) {
+        touchAccumulated.current = 0;
+      }
     }
-  }, [activeIndex]);
+  }, [activeStep, changeStep]);
 
   // Setup event listeners
   useEffect(() => {
-    const section = sectionRef.current;
-    if (!section || isMobile) return;
+    if (isMobile) return;
 
-    // Use passive: false to allow preventDefault
     window.addEventListener('wheel', handleWheel, { passive: false });
+    window.addEventListener('keydown', handleKeyDown);
 
     return () => {
       window.removeEventListener('wheel', handleWheel);
+      window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [handleWheel, isMobile]);
+  }, [handleWheel, handleKeyDown, isMobile]);
 
-  // Touch events for desktop (trackpad)
+  // Touch events
   useEffect(() => {
     const section = sectionRef.current;
     if (!section || isMobile) return;
@@ -554,13 +641,6 @@ export function FeaturesSection() {
       section.removeEventListener('touchmove', handleTouchMove);
     };
   }, [handleTouchStart, handleTouchMove, isMobile]);
-
-  // Sync progress with activeIndex when changed externally
-  useEffect(() => {
-    if (activeIndex === 0) progressRef.current = 0;
-    else if (activeIndex === 1) progressRef.current = 0.5;
-    else if (activeIndex === 2) progressRef.current = 1;
-  }, []);
 
   // Mobile version
   if (isMobile) {
@@ -621,10 +701,10 @@ export function FeaturesSection() {
 
           {/* Progress dots */}
           <div className="mb-4 shrink-0">
-            <ProgressDots activeIndex={activeIndex} />
+            <ProgressDots activeIndex={activeStep} />
           </div>
 
-          {/* Cards container - hero size */}
+          {/* Cards container - hero size with AnimatePresence */}
           <div 
             className="relative flex-1 w-full mx-auto overflow-visible"
             style={{ 
@@ -632,14 +712,13 @@ export function FeaturesSection() {
               minHeight: 'min(580px, calc(100vh - 280px))',
             }}
           >
-            {planData.map((plan, index) => (
+            <AnimatePresence mode="wait" initial={false}>
               <HeroCard
-                key={plan.id}
-                plan={plan}
-                index={index}
-                activeIndex={activeIndex}
+                key={planData[activeStep].id}
+                plan={planData[activeStep]}
+                direction={direction}
               />
-            ))}
+            </AnimatePresence>
           </div>
 
           {/* Scroll hint */}
@@ -649,9 +728,12 @@ export function FeaturesSection() {
             transition={{ duration: 2, repeat: Infinity }}
           >
             <p className="text-xs text-muted-foreground">
-              {activeIndex === 0 && '↓ Role para ver Pro'}
-              {activeIndex === 1 && '↑↓ Role para Start ou Premium'}
-              {activeIndex === 2 && '↓ Continue para ver preços'}
+              {activeStep === 0 && '↓ Role para ver Pro'}
+              {activeStep === 1 && '↑↓ Role para Start ou Premium'}
+              {activeStep === 2 && '↓ Continue para ver preços'}
+            </p>
+            <p className="text-xs text-muted-foreground/60 mt-1">
+              Use ↑↓ ou scroll • {activeStep + 1} de 3
             </p>
           </motion.div>
         </div>
