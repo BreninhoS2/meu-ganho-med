@@ -11,21 +11,23 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Location, LocationType } from '@/types';
-import { X, Plus } from 'lucide-react';
+import { X, Plus, Save } from 'lucide-react';
 
 interface LocationFormModalProps {
   onSubmit: (location: Omit<Location, 'id' | 'createdAt'>) => void | Promise<any>;
   onClose: () => void;
+  editingLocation?: Location;
 }
 
-export function LocationFormModal({ onSubmit, onClose }: LocationFormModalProps) {
-  const [name, setName] = useState('');
-  const [type, setType] = useState<LocationType>('hospital');
-  const [defaultShift12hValue, setDefaultShift12hValue] = useState('');
-  const [defaultShift24hValue, setDefaultShift24hValue] = useState('');
-  const [defaultConsultationValue, setDefaultConsultationValue] = useState('');
-  const [paymentDeadlineDays, setPaymentDeadlineDays] = useState('30');
-  const [notes, setNotes] = useState('');
+export function LocationFormModal({ onSubmit, onClose, editingLocation }: LocationFormModalProps) {
+  const isEditing = !!editingLocation;
+  const [name, setName] = useState(editingLocation?.name || '');
+  const [type, setType] = useState<LocationType>(editingLocation?.type || 'hospital');
+  const [defaultShift12hValue, setDefaultShift12hValue] = useState(editingLocation?.defaultShift12hValue?.toString() || '');
+  const [defaultShift24hValue, setDefaultShift24hValue] = useState(editingLocation?.defaultShift24hValue?.toString() || '');
+  const [defaultConsultationValue, setDefaultConsultationValue] = useState(editingLocation?.defaultConsultationValue?.toString() || '');
+  const [paymentDeadlineDays, setPaymentDeadlineDays] = useState(editingLocation?.paymentDeadlineDays?.toString() || '30');
+  const [notes, setNotes] = useState(editingLocation?.notes || '');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,26 +48,23 @@ export function LocationFormModal({ onSubmit, onClose }: LocationFormModalProps)
 
   return (
     <div className="fixed inset-0 z-[60] bg-background/80 backdrop-blur-sm animate-fade-in">
-      {/* Backdrop click to close */}
       <div className="absolute inset-0" onClick={onClose} />
       
-      {/* Modal container - centered with max-height */}
       <div className="fixed inset-x-4 top-1/2 -translate-y-1/2 z-[60] max-w-md mx-auto">
         <div className="bg-card rounded-2xl shadow-prominent max-h-[calc(100vh-120px)] flex flex-col animate-slide-up">
-          {/* Header - fixed */}
           <div className="p-5 pb-0 flex-shrink-0">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-foreground">Novo Local</h2>
+              <h2 className="text-lg font-semibold text-foreground">
+                {isEditing ? 'Editar Local' : 'Novo Local'}
+              </h2>
               <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onClose}>
                 <X className="w-5 h-5" />
               </Button>
             </div>
           </div>
 
-          {/* Scrollable content */}
           <div className="flex-1 overflow-y-auto px-5 pb-5">
             <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Name */}
               <div className="space-y-2">
                 <Label className="text-sm text-muted-foreground">Nome</Label>
                 <Input
@@ -76,7 +75,6 @@ export function LocationFormModal({ onSubmit, onClose }: LocationFormModalProps)
                 />
               </div>
 
-              {/* Type */}
               <div className="space-y-2">
                 <Label className="text-sm text-muted-foreground">Tipo</Label>
                 <Select value={type} onValueChange={(v) => setType(v as LocationType)}>
@@ -90,7 +88,6 @@ export function LocationFormModal({ onSubmit, onClose }: LocationFormModalProps)
                 </Select>
               </div>
 
-              {/* Default values */}
               <div className="space-y-2">
                 <Label className="text-sm text-muted-foreground">Valores padrão (R$)</Label>
                 <div className="grid grid-cols-3 gap-2">
@@ -124,7 +121,6 @@ export function LocationFormModal({ onSubmit, onClose }: LocationFormModalProps)
                 </div>
               </div>
 
-              {/* Payment deadline */}
               <div className="space-y-2">
                 <Label className="text-sm text-muted-foreground">Prazo de pagamento (dias)</Label>
                 <Input
@@ -136,7 +132,6 @@ export function LocationFormModal({ onSubmit, onClose }: LocationFormModalProps)
                 />
               </div>
 
-              {/* Notes */}
               <div className="space-y-2">
                 <Label className="text-sm text-muted-foreground">Observações (opcional)</Label>
                 <Textarea
@@ -147,10 +142,18 @@ export function LocationFormModal({ onSubmit, onClose }: LocationFormModalProps)
                 />
               </div>
 
-              {/* Submit */}
               <Button type="submit" disabled={!isValid} className="w-full h-14 text-base font-semibold rounded-xl">
-                <Plus className="w-5 h-5 mr-2" />
-                Adicionar Local
+                {isEditing ? (
+                  <>
+                    <Save className="w-5 h-5 mr-2" />
+                    Salvar Alterações
+                  </>
+                ) : (
+                  <>
+                    <Plus className="w-5 h-5 mr-2" />
+                    Adicionar Local
+                  </>
+                )}
               </Button>
             </form>
           </div>

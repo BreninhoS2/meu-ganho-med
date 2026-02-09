@@ -2,7 +2,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Location } from '@/types';
 import { formatCurrency } from '@/lib/formatters';
-import { Building2, Trash2, Hospital } from 'lucide-react';
+import { Building2, Trash2, Hospital, Pencil } from 'lucide-react';
 
 interface LocationsListProps {
   locations: Location[];
@@ -10,7 +10,7 @@ interface LocationsListProps {
   onDelete: (id: string) => void;
 }
 
-export function LocationsList({ locations, onDelete }: LocationsListProps) {
+export function LocationsList({ locations, onEdit, onDelete }: LocationsListProps) {
   if (locations.length === 0) {
     return (
       <Card className="p-6 text-center">
@@ -51,14 +51,24 @@ export function LocationsList({ locations, onDelete }: LocationsListProps) {
                 )}
               </div>
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 text-destructive"
-              onClick={() => onDelete(location.id)}
-            >
-              <Trash2 className="w-4 h-4" />
-            </Button>
+            <div className="flex gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                onClick={() => onEdit(location.id)}
+              >
+                <Pencil className="w-4 h-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-destructive"
+                onClick={() => onDelete(location.id)}
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
         </Card>
       ))}

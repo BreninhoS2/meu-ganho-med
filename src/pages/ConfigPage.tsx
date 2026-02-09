@@ -9,16 +9,19 @@ import { useDbLocations } from '@/hooks/useDbLocations';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { STRIPE_PLANS } from '@/lib/stripe';
-import { Building2, Plus, Database, Info, User, CreditCard, LogOut, Crown, Loader2 } from 'lucide-react';
+import { getPlanHomeRoute } from '@/lib/permissions';
+import { Building2, Plus, Database, Info, User, CreditCard, LogOut, Crown, Loader2, Home } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { Location } from '@/types';
 
 export default function ConfigPage() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user, subscription, signOut } = useAuth();
   const [showLocationForm, setShowLocationForm] = useState(false);
+  const [editingLocation, setEditingLocation] = useState<Location | null>(null);
   const [isLoadingPortal, setIsLoadingPortal] = useState(false);
-  const { locations, isLoading, addLocation, updateLocation, removeLocation } = useDbLocations();
+  const { locations, isLoading, addLocation, updateLocation, removeLocation, getLocationById } = useDbLocations();
 
   const currentPlan = subscription.plan ? STRIPE_PLANS[subscription.plan] : null;
 
@@ -26,9 +29,7 @@ export default function ConfigPage() {
     setIsLoadingPortal(true);
     try {
       const { data, error } = await supabase.functions.invoke('customer-portal');
-      
       if (error) throw error;
-
       if (data?.url) {
         window.open(data.url, '_blank');
       }
@@ -47,6 +48,24 @@ export default function ConfigPage() {
   const handleSignOut = async () => {
     await signOut();
     navigate('/auth');
+  };
+
+  const handleGoToEnvironment = () => {
+    const homeRoute = getPlanHomeRoute(subscription.plan);
+    navigate(homeRoute);
+  };
+
+  const handleEditLocation = (id: string) => {
+    const location = getLocationById(id);
+    if (location) {
+      setEditingLocation(location);
+      setShowLocationForm(true);
+    }
+  };
+
+  const handleCloseForm = () => {
+    setShowLocationForm(false);
+    setEditingLocation(null);
   };
 
   if (isLoading) {
@@ -69,63 +88,41 @@ export default function ConfigPage() {
             <h2 className="font-semibold text-foreground">Conta</h2>
           </div>
           
-          <Card className="p-4 space-y-4">
+          <Card className="p-4 space-y-3">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-foreground">{user?.email}</p>
-                <p className="text-xs text-muted-foreground">Logado desde {
-                  user?.created_at ? new Date(user.created_at).toLocaleDateString('pt-BR') : '-'
-                }</p>
+                <p className="text-xs text-muted-foreground">
+                  Plano {currentPlan?.name || 'Nenhum'}
+                </p>
               </div>
-              <Button variant="ghost" size="sm" onClick={handleSignOut}>
-                <LogOut className="w-4 h-4 mr-1" />
-                Sair
-              </Button>
             </div>
-          </Card>
-        </section>
 
-        {/* Subscription section */}
-        <section>
-          <div className="flex items-center gap-2 mb-4">
-            <CreditCard className="w-5 h-5 text-primary" />
-            <h2 className="font-semibold text-foreground">Assinatura</h2>
-          </div>
-          
-          <Card className="p-4 space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                {currentPlan?.popular && <Crown className="w-4 h-4 text-primary" />}
-                <div>
-                  <p className="text-sm font-medium text-foreground">
-                    Plano {currentPlan?.name || 'Nenhum'}
-                  </p>
-                  {subscription.subscriptionEnd && (
-                    <p className="text-xs text-muted-foreground">
-                      Renova em {new Date(subscription.subscriptionEnd).toLocaleDateString('pt-BR')}
-                    </p>
-                  )}
-                </div>
-              </div>
-              <div className="flex gap-2">
+            <div className="flex flex-col gap-2">
+              <Button variant="default" size="sm" className="w-full justify-start" onClick={handleGoToEnvironment}>
+                <Home className="w-4 h-4 mr-2" />
+                Ir para o ambiente
+              </Button>
+              <Button variant="outline" size="sm" className="w-full justify-start" onClick={() => navigate('/subscribe')}>
+                <CreditCard className="w-4 h-4 mr-2" />
+                Plano / Assinatura
+              </Button>
+              {subscription.subscribed && (
                 <Button 
                   variant="outline" 
                   size="sm" 
+                  className="w-full justify-start"
                   onClick={handleManageSubscription}
                   disabled={isLoadingPortal}
                 >
-                  {isLoadingPortal ? (
-                    <Loader2 className="w-4 h-4 animate-spin mr-1" />
-                  ) : null}
-                  Gerenciar
+                  {isLoadingPortal ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Crown className="w-4 h-4 mr-2" />}
+                  Gerenciar assinatura
                 </Button>
-                <Button 
-                  size="sm" 
-                  onClick={() => navigate('/subscribe')}
-                >
-                  Alterar plano
-                </Button>
-              </div>
+              )}
+              <Button variant="ghost" size="sm" className="w-full justify-start text-destructive" onClick={handleSignOut}>
+                <LogOut className="w-4 h-4 mr-2" />
+                Sair
+              </Button>
             </div>
           </Card>
         </section>
@@ -137,7 +134,7 @@ export default function ConfigPage() {
               <Building2 className="w-5 h-5 text-primary" />
               <h2 className="font-semibold text-foreground">Locais</h2>
             </div>
-            <Button size="sm" onClick={() => setShowLocationForm(true)}>
+            <Button size="sm" onClick={() => { setEditingLocation(null); setShowLocationForm(true); }}>
               <Plus className="w-4 h-4 mr-1" />
               Adicionar
             </Button>
@@ -145,9 +142,7 @@ export default function ConfigPage() {
           
           <LocationsList 
             locations={locations}
-            onEdit={(id) => {
-              // For now, just allow delete. Edit can be added later.
-            }}
+            onEdit={handleEditLocation}
             onDelete={removeLocation}
           />
         </section>
@@ -187,11 +182,16 @@ export default function ConfigPage() {
 
       {showLocationForm && (
         <LocationFormModal
-          onSubmit={async (location) => {
-            await addLocation(location);
-            setShowLocationForm(false);
+          editingLocation={editingLocation ?? undefined}
+          onSubmit={async (locationData) => {
+            if (editingLocation) {
+              await updateLocation(editingLocation.id, locationData);
+            } else {
+              await addLocation(locationData);
+            }
+            handleCloseForm();
           }}
-          onClose={() => setShowLocationForm(false)}
+          onClose={handleCloseForm}
         />
       )}
     </AppLayout>
