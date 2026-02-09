@@ -727,18 +727,18 @@ export function FeaturesSection() {
     <section 
       id="recursos" 
       ref={sectionRef}
-      className="relative bg-gradient-to-b from-background via-muted/5 to-background overflow-visible"
-      style={{ minHeight: '105vh' }}
+      className="relative bg-gradient-to-b from-background via-muted/5 to-background overflow-visible pb-0 mb-0"
+      style={{ minHeight: '90vh' }}
     >
       {/* Sticky container */}
       <div 
         className="sticky flex flex-col items-center overflow-visible"
         style={{ 
-          top: '80px', 
-          height: 'calc(100vh - 80px)',
+          top: '64px', 
+          height: 'calc(100vh - 64px)',
         }}
       >
-        <div className="container px-4 h-full flex flex-col py-2">
+        <div className="container px-4 h-full flex flex-col py-1">
           {/* Header */}
           <div className="text-center mb-2 shrink-0">
             <Badge variant="secondary" className="mb-1">Recursos</Badge>
