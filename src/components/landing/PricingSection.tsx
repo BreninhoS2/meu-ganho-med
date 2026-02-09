@@ -99,9 +99,9 @@ export function PricingSection() {
                         {plan.description}
                       </p>
                       <div className="flex items-baseline justify-center gap-1">
-                        <span className="text-sm text-muted-foreground">R$</span>
+                        <span className="text-lg text-muted-foreground">R$</span>
                         <span className="text-5xl font-extrabold text-foreground">
-                          {plan.price.toFixed(0)}
+                          {plan.price.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).replace('.', ',')}
                         </span>
                         <span className="text-muted-foreground">/mês</span>
                       </div>

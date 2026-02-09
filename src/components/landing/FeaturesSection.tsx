@@ -26,13 +26,14 @@ import {
 
 // ============ CONFIGURAÇÃO DO SCROLLYTELLING ============
 const CONFIG = {
-  DELTA_THRESHOLD: 700,      // Quantidade de scroll acumulado para trocar card (aumentado)
-  LOCK_MS: 1200,             // Lock após troca (ms) - mais lento
-  MIN_DWELL_MS: 1500,        // Tempo mínimo no card antes de poder trocar
-  TRANSITION_DURATION: 0.85, // Duração da animação (segundos)
-  TRACKPAD_MULTIPLIER: 0.4,  // Multiplicador para trackpad (delta menor)
-  EXIT_THRESHOLD: 500,       // Threshold extra para sair da seção
-  MAX_DELTA_PER_FRAME: 80,   // Limitar delta máximo por evento (clamp)
+  DELTA_THRESHOLD: 900,        // Aumentado: mais scroll para trocar card
+  LOCK_MS: 1600,               // Lock mais longo após troca
+  MIN_DWELL_MS: 1800,          // Tempo mínimo no card antes de poder trocar
+  TRANSITION_DURATION: 0.75,   // Duração da animação (segundos)
+  TRACKPAD_MULTIPLIER: 0.25,   // Multiplicador menor para trackpad
+  EXIT_THRESHOLD: 700,         // Threshold extra para sair da seção
+  MAX_DELTA_PER_FRAME: 60,     // Limitar delta máximo por evento (mais restritivo)
+  TRANSITION_COOLDOWN: 900,    // Cooldown adicional durante transição
 };
 
 const planData = [
@@ -100,7 +101,7 @@ const planData = [
   },
 ];
 
-// Floating icon component with animation
+// Floating icon component with animation - optimized
 function FloatingIcon({ 
   icon: Icon, 
   delay, 
@@ -114,7 +115,7 @@ function FloatingIcon({
 }) {
   return (
     <motion.div
-      className={`absolute w-12 h-12 lg:w-14 lg:h-14 rounded-xl ${color} flex items-center justify-center shadow-lg backdrop-blur-sm`}
+      className={`absolute w-12 h-12 lg:w-14 lg:h-14 rounded-xl ${color} flex items-center justify-center shadow-lg will-change-transform`}
       style={position}
       initial={{ opacity: 0, scale: 0.5 }}
       animate={{ 
@@ -136,7 +137,7 @@ function FloatingIcon({
   );
 }
 
-// Illustration panel for each card - more compact
+// Illustration panel for each card - optimized
 function IllustrationPanel({ plan, isActive }: { plan: typeof planData[0]; isActive: boolean }) {
   const positions = [
     { top: '8%', right: '8%' },
@@ -153,19 +154,14 @@ function IllustrationPanel({ plan, isActive }: { plan: typeof planData[0]; isAct
 
   return (
     <div className="relative w-full h-full min-h-[160px] lg:min-h-[200px]">
-      {/* Central glow */}
-      <motion.div 
-        className={`absolute inset-0 rounded-2xl bg-gradient-radial ${plan.bgGradient} opacity-50`}
-        animate={{ 
-          scale: isActive ? [1, 1.03, 1] : 1,
-          opacity: isActive ? [0.3, 0.5, 0.3] : 0.2,
-        }}
-        transition={{ duration: 3, repeat: Infinity }}
+      {/* Central glow - simplified for performance */}
+      <div 
+        className={`absolute inset-0 rounded-2xl bg-gradient-radial ${plan.bgGradient} opacity-40`}
       />
       
       {/* Main icon in center */}
       <motion.div
-        className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 lg:w-20 lg:h-20 rounded-xl ${colorClasses[plan.color]} flex items-center justify-center shadow-xl`}
+        className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 lg:w-20 lg:h-20 rounded-xl ${colorClasses[plan.color]} flex items-center justify-center shadow-xl will-change-transform`}
         animate={{ 
           scale: isActive ? [1, 1.05, 1] : 0.9,
           rotate: isActive ? [0, 2, 0, -2, 0] : 0,
@@ -175,7 +171,7 @@ function IllustrationPanel({ plan, isActive }: { plan: typeof planData[0]; isAct
         <plan.icon className="w-8 h-8 lg:w-10 lg:h-10" />
       </motion.div>
 
-      {/* Floating icons - smaller */}
+      {/* Floating icons */}
       <AnimatePresence mode="wait">
         {isActive && plan.floatingIcons.map((icon, i) => (
           <FloatingIcon 
@@ -188,40 +184,33 @@ function IllustrationPanel({ plan, isActive }: { plan: typeof planData[0]; isAct
         ))}
       </AnimatePresence>
 
-      {/* Decorative circles - smaller */}
-      <motion.div
+      {/* Decorative circles - static for performance */}
+      <div
         className={`absolute top-1/4 right-1/4 w-20 h-20 rounded-full border ${plan.borderColor} opacity-20`}
-        animate={{ scale: [1, 1.1, 1], rotate: 360 }}
-        transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
       />
-      <motion.div
+      <div
         className={`absolute bottom-1/4 left-1/4 w-16 h-16 rounded-full border ${plan.borderColor} opacity-15`}
-        animate={{ scale: [1.1, 1, 1.1], rotate: -360 }}
-        transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
       />
     </div>
   );
 }
 
-// Directional card animation variants
+// Directional card animation variants - optimized with transform only
 const getCardVariants = (direction: 'down' | 'up') => ({
   initial: {
-    y: direction === 'down' ? 120 : -120,
+    y: direction === 'down' ? 100 : -100,
     opacity: 0,
-    scale: 0.96,
-    filter: 'blur(8px)',
+    scale: 0.97,
   },
   animate: {
     y: 0,
     opacity: 1,
     scale: 1,
-    filter: 'blur(0px)',
   },
   exit: {
-    y: direction === 'down' ? -120 : 120,
+    y: direction === 'down' ? -100 : 100,
     opacity: 0,
-    scale: 0.96,
-    filter: 'blur(8px)',
+    scale: 0.97,
   },
 });
 
@@ -251,9 +240,8 @@ function HeroCard({ plan, direction }: HeroCardProps) {
       transition={{ 
         duration: CONFIG.TRANSITION_DURATION, 
         ease: [0.4, 0, 0.2, 1],
-        filter: { duration: CONFIG.TRANSITION_DURATION * 0.6 },
       }}
-      className="absolute inset-0"
+      className="absolute inset-0 will-change-transform"
     >
       <div 
         className={`
@@ -262,45 +250,45 @@ function HeroCard({ plan, direction }: HeroCardProps) {
           shadow-xl overflow-visible
         `}
         style={{
-          boxShadow: '0 20px 40px -12px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(0, 0, 0, 0.05)',
+          boxShadow: '0 16px 32px -8px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.05)',
         }}
       >
-        <div className="h-full flex flex-col lg:flex-row p-4 lg:p-6 gap-4 lg:gap-8">
+        <div className="h-full flex flex-col lg:flex-row p-4 lg:p-5 gap-3 lg:gap-6">
           {/* Content side */}
-          <div className="flex-[1.15] flex flex-col">
-            {/* Header - compact */}
-            <div className="flex items-center gap-3 mb-2">
+          <div className="flex-[1.2] flex flex-col">
+            {/* Header */}
+            <div className="flex items-center gap-3 mb-1">
               <motion.div 
-                className={`w-11 h-11 rounded-xl ${plan.badgeBg} flex items-center justify-center shadow-md`}
+                className={`w-12 h-12 rounded-xl ${plan.badgeBg} flex items-center justify-center shadow-md`}
                 initial={{ scale: 0.8, rotate: -10 }}
                 animate={{ scale: 1, rotate: 0 }}
                 transition={{ delay: 0.2, duration: 0.4, ease: "easeOut" }}
               >
-                <PlanIcon className="w-5 h-5" />
+                <PlanIcon className="w-6 h-6" />
               </motion.div>
               <div>
                 <div className="flex items-center gap-2">
                   <h3 className="text-2xl lg:text-3xl font-bold text-foreground">Plano {plan.name}</h3>
                   <Badge className={`${plan.badgeBg} text-xs`}>{plan.name}</Badge>
                 </div>
-                <p className="text-sm lg:text-base text-muted-foreground">{plan.tagline}</p>
+                <p className="text-base text-muted-foreground">{plan.tagline}</p>
               </div>
             </div>
 
-            {/* Bullets with staggered animation - pushed down */}
-            <div className="space-y-3 mt-4 lg:mt-6 flex-1">
+            {/* Bullets with staggered animation */}
+            <div className="space-y-2.5 mt-3 lg:mt-4 flex-1">
               {plan.bullets.map((bullet, i) => (
                 <motion.div 
                   key={i} 
                   className="flex items-start gap-2.5"
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.3 + i * 0.05, duration: 0.4 }}
+                  transition={{ delay: 0.25 + i * 0.04, duration: 0.35 }}
                 >
                   <div className={`w-5 h-5 rounded-full ${plan.badgeBg} flex items-center justify-center shrink-0 mt-0.5`}>
                     <Check className="w-3 h-3" />
                   </div>
-                  <span className="text-sm lg:text-base text-foreground">{bullet}</span>
+                  <span className="text-base text-foreground leading-snug">{bullet}</span>
                 </motion.div>
               ))}
             </div>
@@ -310,7 +298,7 @@ function HeroCard({ plan, direction }: HeroCardProps) {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5, duration: 0.4 }}
-              className="mt-auto"
+              className="mt-auto pt-2"
             >
               <Button 
                 onClick={scrollToSection}
@@ -323,8 +311,8 @@ function HeroCard({ plan, direction }: HeroCardProps) {
             </motion.div>
           </div>
 
-          {/* Illustration side - narrower */}
-          <div className="flex-[0.85] relative hidden lg:block">
+          {/* Illustration side */}
+          <div className="flex-[0.8] relative hidden lg:block">
             <IllustrationPanel plan={plan} isActive={true} />
           </div>
         </div>
@@ -333,7 +321,7 @@ function HeroCard({ plan, direction }: HeroCardProps) {
   );
 }
 
-// Progress indicator with scroll feedback
+// Progress indicator
 function ProgressIndicator({ 
   activeIndex, 
   scrollProgress,
@@ -349,7 +337,7 @@ function ProgressIndicator({
   const showProgress = progressPercent > 5 && !isLocked;
 
   return (
-    <div className="flex flex-col items-center gap-3">
+    <div className="flex flex-col items-center gap-2">
       {/* Dots */}
       <div className="flex items-center justify-center gap-3">
         {planData.map((plan, index) => {
@@ -396,9 +384,7 @@ function ProgressIndicator({
             <div className="w-24 h-1.5 bg-muted rounded-full overflow-hidden">
               <motion.div 
                 className="h-full bg-primary/60 rounded-full"
-                initial={{ width: 0 }}
-                animate={{ width: `${progressPercent}%` }}
-                transition={{ duration: 0.1 }}
+                style={{ width: `${progressPercent}%` }}
               />
             </div>
             <span className="w-8 text-right">{Math.round(progressPercent)}%</span>
@@ -498,21 +484,26 @@ export function FeaturesSection() {
   const lastChangeTime = useRef(0);
   const cardAppearedTime = useRef(Date.now());
   const exitAccumulator = useRef(0);
+  const rafId = useRef<number | null>(null);
+  const pendingDelta = useRef(0);
 
-  // Detect if input is trackpad (smaller, more frequent deltas)
+  // Detect if input is trackpad
   const isTrackpad = useRef(false);
   const lastDeltaTime = useRef(0);
   const deltaHistory = useRef<number[]>([]);
 
-  // Lock body scroll when pinned
+  // Lock body scroll when pinned - using class for performance
   useEffect(() => {
     if (isPinned && !isMobile) {
       document.body.style.overflow = 'hidden';
+      document.body.style.touchAction = 'none';
     } else {
       document.body.style.overflow = '';
+      document.body.style.touchAction = '';
     }
     return () => {
       document.body.style.overflow = '';
+      document.body.style.touchAction = '';
     };
   }, [isPinned, isMobile]);
 
@@ -523,7 +514,6 @@ export function FeaturesSection() {
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
-          // Card is considered visible when at least 35% is in viewport
           setIsCardVisible(entry.intersectionRatio >= 0.35);
         });
       },
@@ -545,7 +535,6 @@ export function FeaturesSection() {
       deltaHistory.current.shift();
     }
 
-    // Trackpad: small deltas, high frequency
     const avgDelta = deltaHistory.current.reduce((a, b) => a + b, 0) / deltaHistory.current.length;
     isTrackpad.current = avgDelta < 50 && timeDiff < 50;
   }, []);
@@ -564,6 +553,11 @@ export function FeaturesSection() {
       return false;
     }
     
+    // Already transitioning - block completely
+    if (isTransitioning) {
+      return false;
+    }
+    
     // Clamp and validate single step
     const clampedStep = Math.max(0, Math.min(2, newStep));
     if (Math.abs(clampedStep - activeStep) !== 1) {
@@ -577,6 +571,7 @@ export function FeaturesSection() {
       cardAppearedTime.current = now;
       accumulatedDelta.current = 0;
       exitAccumulator.current = 0;
+      pendingDelta.current = 0;
       setScrollProgress(0);
       setIsLocked(true);
       setIsTransitioning(true);
@@ -586,16 +581,48 @@ export function FeaturesSection() {
         setIsLocked(false);
       }, CONFIG.LOCK_MS);
       
-      // End transition after animation completes
+      // End transition after animation completes + cooldown
       setTimeout(() => {
         setIsTransitioning(false);
-      }, CONFIG.TRANSITION_DURATION * 1000 + 100);
+      }, CONFIG.TRANSITION_DURATION * 1000 + CONFIG.TRANSITION_COOLDOWN);
       
       return true;
     }
     
     return false;
-  }, [activeStep]);
+  }, [activeStep, isTransitioning]);
+
+  // Process scroll with RAF for smooth 180hz
+  const processScroll = useCallback(() => {
+    if (pendingDelta.current === 0) {
+      rafId.current = null;
+      return;
+    }
+
+    const delta = pendingDelta.current;
+    pendingDelta.current = 0;
+
+    // Accumulate delta
+    const currentDirection = delta > 0 ? 'down' : 'up';
+    const prevDirection = accumulatedDelta.current > 0 ? 'down' : accumulatedDelta.current < 0 ? 'up' : currentDirection;
+
+    // Reset if direction changes
+    if (currentDirection !== prevDirection && accumulatedDelta.current !== 0) {
+      accumulatedDelta.current = 0;
+    }
+
+    accumulatedDelta.current += delta;
+    setScrollProgress(accumulatedDelta.current);
+    setDirection(currentDirection);
+
+    // Check threshold
+    if (Math.abs(accumulatedDelta.current) >= CONFIG.DELTA_THRESHOLD) {
+      const newStep = activeStep + (currentDirection === 'down' ? 1 : -1);
+      changeStep(newStep, currentDirection);
+    }
+
+    rafId.current = null;
+  }, [activeStep, changeStep]);
 
   // Handle wheel events
   const handleWheel = useCallback((e: WheelEvent) => {
@@ -615,18 +642,20 @@ export function FeaturesSection() {
       setIsPinned(false);
       accumulatedDelta.current = 0;
       exitAccumulator.current = 0;
+      pendingDelta.current = 0;
       setScrollProgress(0);
       return;
     }
 
-    // Only process scroll when card is visible (at least 35% in viewport)
+    // Only process scroll when card is visible
     if (!isCardVisible) {
       return;
     }
 
-    // Block all scroll during transition animation
-    if (isTransitioning) {
+    // CRITICAL: Block ALL scroll during transition
+    if (isTransitioning || isLocked) {
       e.preventDefault();
+      e.stopPropagation();
       return;
     }
 
@@ -634,7 +663,7 @@ export function FeaturesSection() {
     detectTrackpad(e.deltaY);
 
     const rawDelta = e.deltaY;
-    // Clamp delta per frame to prevent fast scrolls from triggering instant changes
+    // Clamp delta per frame strongly
     const clampedDelta = Math.sign(rawDelta) * Math.min(Math.abs(rawDelta), CONFIG.MAX_DELTA_PER_FRAME);
     const delta = isTrackpad.current ? clampedDelta * CONFIG.TRACKPAD_MULTIPLIER : clampedDelta;
     const scrollingDown = delta > 0;
@@ -647,6 +676,7 @@ export function FeaturesSection() {
         setIsPinned(false);
         accumulatedDelta.current = 0;
         exitAccumulator.current = 0;
+        pendingDelta.current = 0;
         setScrollProgress(0);
         return;
       }
@@ -661,6 +691,7 @@ export function FeaturesSection() {
         setIsPinned(false);
         accumulatedDelta.current = 0;
         exitAccumulator.current = 0;
+        pendingDelta.current = 0;
         setScrollProgress(0);
         return;
       }
@@ -672,34 +703,58 @@ export function FeaturesSection() {
     // Reset exit accumulator if direction changes
     exitAccumulator.current = 0;
 
-    // Prevent page scroll
+    // Prevent page scroll completely
     e.preventDefault();
+    e.stopPropagation();
     setIsPinned(true);
 
-    // If locked, ignore accumulation
-    if (isLocked) {
+    // Accumulate delta and schedule RAF
+    pendingDelta.current += delta;
+    if (!rafId.current) {
+      rafId.current = requestAnimationFrame(processScroll);
+    }
+  }, [activeStep, detectTrackpad, isLocked, isCardVisible, isTransitioning, processScroll]);
+
+  // Handle touch events for mobile-like gestures
+  const touchStartY = useRef(0);
+  
+  const handleTouchStart = useCallback((e: TouchEvent) => {
+    touchStartY.current = e.touches[0].clientY;
+  }, []);
+
+  const handleTouchMove = useCallback((e: TouchEvent) => {
+    if (!sectionRef.current || !isCardVisible) return;
+    
+    if (isTransitioning || isLocked) {
+      e.preventDefault();
       return;
     }
 
-    // Accumulate delta in current direction
-    const currentDirection = delta > 0 ? 'down' : 'up';
-    const prevDirection = accumulatedDelta.current > 0 ? 'down' : accumulatedDelta.current < 0 ? 'up' : currentDirection;
+    const section = sectionRef.current;
+    const rect = section.getBoundingClientRect();
+    const viewportHeight = window.innerHeight;
+    const headerHeight = 80;
+    const isInView = rect.top <= headerHeight + 100 && rect.bottom >= viewportHeight - 100;
 
-    // Reset if direction changes
-    if (currentDirection !== prevDirection && accumulatedDelta.current !== 0) {
-      accumulatedDelta.current = 0;
+    if (!isInView) return;
+
+    const touchY = e.touches[0].clientY;
+    const deltaY = touchStartY.current - touchY;
+    
+    if (Math.abs(deltaY) > 10) {
+      e.preventDefault();
+      setIsPinned(true);
+      
+      const clampedDelta = Math.sign(deltaY) * Math.min(Math.abs(deltaY), CONFIG.MAX_DELTA_PER_FRAME);
+      pendingDelta.current += clampedDelta * 0.5;
+      
+      if (!rafId.current) {
+        rafId.current = requestAnimationFrame(processScroll);
+      }
+      
+      touchStartY.current = touchY;
     }
-
-    accumulatedDelta.current += delta;
-    setScrollProgress(accumulatedDelta.current);
-    setDirection(currentDirection);
-
-    // Check threshold
-    if (Math.abs(accumulatedDelta.current) >= CONFIG.DELTA_THRESHOLD) {
-      const newStep = activeStep + (currentDirection === 'down' ? 1 : -1);
-      changeStep(newStep, currentDirection);
-    }
-  }, [activeStep, changeStep, detectTrackpad, isLocked, isCardVisible, isTransitioning]);
+  }, [isCardVisible, isLocked, isTransitioning, processScroll]);
 
   // Handle keyboard navigation
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
@@ -711,7 +766,7 @@ export function FeaturesSection() {
     const headerHeight = 80;
     const isInView = rect.top <= headerHeight + 100 && rect.bottom >= viewportHeight - 100;
 
-    if (!isInView || isLocked) return;
+    if (!isInView || isLocked || isTransitioning) return;
 
     switch (e.key) {
       case 'ArrowDown':
@@ -729,7 +784,7 @@ export function FeaturesSection() {
         }
         break;
     }
-  }, [activeStep, changeStep, isLocked]);
+  }, [activeStep, changeStep, isLocked, isTransitioning]);
 
   // Setup event listeners
   useEffect(() => {
@@ -737,12 +792,19 @@ export function FeaturesSection() {
 
     window.addEventListener('wheel', handleWheel, { passive: false });
     window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('touchstart', handleTouchStart, { passive: true });
+    window.addEventListener('touchmove', handleTouchMove, { passive: false });
 
     return () => {
       window.removeEventListener('wheel', handleWheel);
       window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('touchstart', handleTouchStart);
+      window.removeEventListener('touchmove', handleTouchMove);
+      if (rafId.current) {
+        cancelAnimationFrame(rafId.current);
+      }
     };
-  }, [handleWheel, handleKeyDown, isMobile]);
+  }, [handleWheel, handleKeyDown, handleTouchStart, handleTouchMove, isMobile]);
 
   // Mobile version
   if (isMobile) {
@@ -779,18 +841,18 @@ export function FeaturesSection() {
       id="recursos" 
       ref={sectionRef}
       className="relative bg-gradient-to-b from-background via-muted/5 to-background overflow-visible pb-0 mb-0"
-      style={{ minHeight: '90vh' }}
+      style={{ minHeight: '92vh' }}
     >
       {/* Sticky container */}
       <div 
         ref={stickyRef}
-        className="sticky flex flex-col items-center overflow-visible"
+        className="sticky flex flex-col items-center overflow-visible will-change-transform"
         style={{ 
           top: '64px', 
           height: 'calc(100vh - 64px)',
         }}
       >
-        <div className="container px-4 h-full flex flex-col py-1">
+        <div className="container px-4 h-full flex flex-col py-2">
           {/* Header */}
           <div className="text-center mb-2 shrink-0">
             <Badge variant="secondary" className="mb-1">Recursos</Badge>
@@ -807,7 +869,7 @@ export function FeaturesSection() {
             <ProgressIndicator 
               activeIndex={activeStep} 
               scrollProgress={scrollProgress}
-              isLocked={isLocked}
+              isLocked={isLocked || isTransitioning}
               direction={direction}
             />
           </div>
@@ -817,8 +879,8 @@ export function FeaturesSection() {
             className="relative flex-1 w-full mx-auto overflow-visible"
             style={{ 
               maxWidth: 'min(880px, 92vw)',
-              minHeight: 'min(360px, calc(100vh - 180px))',
-              maxHeight: 'calc(100vh - 180px)',
+              minHeight: 'min(340px, calc(100vh - 200px))',
+              maxHeight: 'calc(100vh - 200px)',
             }}
           >
             <AnimatePresence mode="wait" initial={false}>
@@ -833,8 +895,8 @@ export function FeaturesSection() {
           {/* Scroll hint */}
           <motion.div 
             className="text-center mt-1 shrink-0"
-            animate={{ opacity: isLocked ? 0.3 : [0.5, 1, 0.5] }}
-            transition={{ duration: 2, repeat: isLocked ? 0 : Infinity }}
+            animate={{ opacity: (isLocked || isTransitioning) ? 0.3 : [0.5, 1, 0.5] }}
+            transition={{ duration: 2, repeat: (isLocked || isTransitioning) ? 0 : Infinity }}
           >
             <p className="text-xs text-muted-foreground">
               {planData[activeStep].nextHint}
