@@ -52,6 +52,8 @@ const statusConfig = {
 const formatCurrency = (value: number) =>
   value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
+const formatCount = (n: number) => (n > 99 ? '99+' : String(n));
+
 export default function PaymentsPage() {
   const [activeTab, setActiveTab] = useState('all');
   const { events, updateEvent, isLoading: eventsLoading } = useDbEvents();
@@ -196,29 +198,29 @@ export default function PaymentsPage() {
         {/* Filter tabs with colored badges */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="w-full grid grid-cols-4">
-            <TabsTrigger value="all" className="gap-1.5">
-              Todos
-              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 bg-muted text-muted-foreground">
-                {counts.all}
-              </Badge>
+            <TabsTrigger value="all" className="inline-flex items-center gap-1.5 overflow-hidden max-w-full">
+              <span className="truncate">Todos</span>
+              <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[11px] leading-none font-semibold rounded-full whitespace-nowrap flex-shrink-0 bg-muted text-muted-foreground">
+                {formatCount(counts.all)}
+              </span>
             </TabsTrigger>
-            <TabsTrigger value="pending" className="gap-1.5">
-              Pend.
-              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 bg-amber-500/20 text-amber-600">
-                {counts.pending}
-              </Badge>
+            <TabsTrigger value="pending" className="inline-flex items-center gap-1.5 overflow-hidden max-w-full">
+              <span className="truncate">Pend.</span>
+              <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[11px] leading-none font-semibold rounded-full whitespace-nowrap flex-shrink-0 bg-amber-500/20 text-amber-600">
+                {formatCount(counts.pending)}
+              </span>
             </TabsTrigger>
-            <TabsTrigger value="paid" className="gap-1.5">
-              Pagos
-              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 bg-emerald-500/20 text-emerald-600">
-                {counts.paid}
-              </Badge>
+            <TabsTrigger value="paid" className="inline-flex items-center gap-1.5 overflow-hidden max-w-full">
+              <span className="truncate">Pagos</span>
+              <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[11px] leading-none font-semibold rounded-full whitespace-nowrap flex-shrink-0 bg-emerald-500/20 text-emerald-600">
+                {formatCount(counts.paid)}
+              </span>
             </TabsTrigger>
-            <TabsTrigger value="overdue" className="gap-1.5">
-              Atras.
-              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 bg-destructive/20 text-destructive">
-                {counts.overdue}
-              </Badge>
+            <TabsTrigger value="overdue" className="inline-flex items-center gap-1.5 overflow-hidden max-w-full">
+              <span className="truncate">Atras.</span>
+              <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[11px] leading-none font-semibold rounded-full whitespace-nowrap flex-shrink-0 bg-destructive/20 text-destructive">
+                {formatCount(counts.overdue)}
+              </span>
             </TabsTrigger>
           </TabsList>
         </Tabs>
