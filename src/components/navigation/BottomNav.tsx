@@ -20,10 +20,10 @@ const fixedItems = [
   { to: '/agenda', icon: Calendar, label: 'Agenda' },
   { to: '/calendario', icon: CalendarDays, label: 'Calendário' },
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+  { to: '/locais', icon: Building2, label: 'Locais' },
 ];
 
 const menuItems = [
-  { to: '/locais', icon: Building2, label: 'Locais' },
   { to: '/pagamentos', icon: Receipt, label: 'Pagamentos' },
   { to: '/config', icon: Settings, label: 'Config' },
 ];
