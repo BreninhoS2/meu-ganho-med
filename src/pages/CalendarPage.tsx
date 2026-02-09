@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
@@ -7,29 +7,37 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { AppLayout } from '@/components/navigation/AppLayout';
 import { cn } from '@/lib/utils';
-
-// Mock data for events
-const mockEvents = [
-  { id: '1', date: new Date(2026, 1, 10), type: 'plantao', title: 'Plantão 12h', value: 1200 },
-  { id: '2', date: new Date(2026, 1, 15), type: 'consulta', title: 'Consulta', value: 350 },
-  { id: '3', date: new Date(2026, 1, 20), type: 'plantao', title: 'Plantão 24h', value: 2400 },
-  { id: '4', date: new Date(2026, 1, 8), type: 'plantao', title: 'Plantão 12h', value: 1200 },
-];
+import { useDbEvents } from '@/hooks/useDbEvents';
+import { Loader2 } from 'lucide-react';
+import { formatCurrency } from '@/lib/formatters';
+import { useNavigate } from 'react-router-dom';
 
 export default function CalendarPage() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const { events, isLoading } = useDbEvents();
+  const navigate = useNavigate();
 
   const monthStart = startOfMonth(currentDate);
   const monthEnd = endOfMonth(currentDate);
   const days = eachDayOfInterval({ start: monthStart, end: monthEnd });
-
-  // Get first day of week offset
   const startDayOfWeek = monthStart.getDay();
   const emptyDays = Array(startDayOfWeek).fill(null);
 
+  // Build event lookup from real data
+  const eventsByDate = useMemo(() => {
+    const map = new Map<string, typeof events>();
+    events.forEach(event => {
+      const key = event.date; // format: YYYY-MM-DD
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(event);
+    });
+    return map;
+  }, [events]);
+
   const getEventsForDay = (date: Date) => {
-    return mockEvents.filter(event => isSameDay(event.date, date));
+    const key = format(date, 'yyyy-MM-dd');
+    return eventsByDate.get(key) || [];
   };
 
   const navigateMonth = (direction: 'prev' | 'next') => {
@@ -46,46 +54,42 @@ export default function CalendarPage() {
 
   const selectedEvents = selectedDate ? getEventsForDay(selectedDate) : [];
 
+  if (isLoading) {
+    return (
+      <AppLayout title="Calendário">
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      </AppLayout>
+    );
+  }
+
   return (
     <AppLayout title="Calendário">
       <div className="space-y-4">
-        {/* Month navigation */}
         <Card>
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => navigateMonth('prev')}
-              >
+              <Button variant="ghost" size="icon" onClick={() => navigateMonth('prev')}>
                 <ChevronLeft className="w-5 h-5" />
               </Button>
               <CardTitle className="text-lg capitalize">
                 {format(currentDate, 'MMMM yyyy', { locale: ptBR })}
               </CardTitle>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => navigateMonth('next')}
-              >
+              <Button variant="ghost" size="icon" onClick={() => navigateMonth('next')}>
                 <ChevronRight className="w-5 h-5" />
               </Button>
             </div>
           </CardHeader>
           <CardContent>
-            {/* Weekday headers */}
             <div className="grid grid-cols-7 gap-1 mb-2">
               {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(day => (
-                <div
-                  key={day}
-                  className="text-center text-xs font-medium text-muted-foreground py-2"
-                >
+                <div key={day} className="text-center text-xs font-medium text-muted-foreground py-2">
                   {day}
                 </div>
               ))}
             </div>
 
-            {/* Calendar grid */}
             <div className="grid grid-cols-7 gap-1">
               {emptyDays.map((_, index) => (
                 <div key={`empty-${index}`} className="aspect-square" />
@@ -115,7 +119,7 @@ export default function CalendarPage() {
                             key={i}
                             className={cn(
                               "w-1.5 h-1.5 rounded-full",
-                              event.type === 'plantao' ? "bg-primary" : "bg-amber-500"
+                              event.type === 'shift' ? "bg-primary" : "bg-amber-500"
                             )}
                           />
                         ))}
@@ -128,7 +132,6 @@ export default function CalendarPage() {
           </CardContent>
         </Card>
 
-        {/* Selected day events */}
         {selectedDate && (
           <Card>
             <CardHeader className="pb-2">
@@ -148,18 +151,21 @@ export default function CalendarPage() {
                         <div
                           className={cn(
                             "w-2 h-8 rounded-full",
-                            event.type === 'plantao' ? "bg-primary" : "bg-amber-500"
+                            event.type === 'shift' ? "bg-primary" : "bg-amber-500"
                           )}
                         />
                         <div>
-                          <p className="font-medium">{event.title}</p>
+                          <p className="font-medium">
+                            {event.type === 'shift' ? 'Plantão' : 'Consulta'}
+                            {event.locationName ? ` - ${event.locationName}` : ''}
+                          </p>
                           <Badge variant="secondary" className="text-xs">
-                            {event.type === 'plantao' ? 'Plantão' : 'Consulta'}
+                            {event.type === 'shift' ? 'Plantão' : 'Consulta'}
                           </Badge>
                         </div>
                       </div>
                       <p className="font-semibold text-primary">
-                        R$ {event.value.toLocaleString('pt-BR')}
+                        {formatCurrency(event.netValue)}
                       </p>
                     </div>
                   ))}
@@ -169,7 +175,11 @@ export default function CalendarPage() {
                   Nenhum evento neste dia
                 </p>
               )}
-              <Button className="w-full mt-4" variant="outline">
+              <Button
+                className="w-full mt-4"
+                variant="outline"
+                onClick={() => navigate('/agenda')}
+              >
                 <Plus className="w-4 h-4 mr-2" />
                 Adicionar evento
               </Button>

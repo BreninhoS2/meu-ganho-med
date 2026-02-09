@@ -26,14 +26,14 @@ import {
 
 // ============ CONFIGURAÇÃO DO SCROLLYTELLING ============
 const CONFIG = {
-  DELTA_THRESHOLD: 900,        // Aumentado: mais scroll para trocar card
-  LOCK_MS: 1600,               // Lock mais longo após troca
-  MIN_DWELL_MS: 1800,          // Tempo mínimo no card antes de poder trocar
-  TRANSITION_DURATION: 0.75,   // Duração da animação (segundos)
-  TRACKPAD_MULTIPLIER: 0.25,   // Multiplicador menor para trackpad
-  EXIT_ARMED_MS: 600,           // How long to prevent re-pinning after edge exit
-  MAX_DELTA_PER_FRAME: 60,     // Limitar delta máximo por evento (mais restritivo)
-  TRANSITION_COOLDOWN: 900,    // Cooldown adicional durante transição
+  DELTA_THRESHOLD: 600,        // Reduced for smoother transitions
+  LOCK_MS: 1000,               // Shorter lock for less perceived jank
+  MIN_DWELL_MS: 1200,          // Shorter dwell for faster response
+  TRANSITION_DURATION: 0.55,   // Faster animation
+  TRACKPAD_MULTIPLIER: 0.35,   // Slightly more responsive trackpad
+  EXIT_ARMED_MS: 400,          // Faster exit release
+  MAX_DELTA_PER_FRAME: 80,     // Allow more delta per frame
+  TRANSITION_COOLDOWN: 500,    // Shorter cooldown
 };
 
 const planData = [
