@@ -52,6 +52,7 @@ export type Database = {
           location_id: string | null
           location_name: string | null
           notes: string | null
+          paid_at: string | null
           patient_name: string | null
           payment_date: string | null
           payment_status: string
@@ -76,6 +77,7 @@ export type Database = {
           location_id?: string | null
           location_name?: string | null
           notes?: string | null
+          paid_at?: string | null
           patient_name?: string | null
           payment_date?: string | null
           payment_status?: string
@@ -100,6 +102,7 @@ export type Database = {
           location_id?: string | null
           location_name?: string | null
           notes?: string | null
+          paid_at?: string | null
           patient_name?: string | null
           payment_date?: string | null
           payment_status?: string

@@ -1,49 +1,26 @@
-import { useState } from 'react';
-import { format, addDays, isBefore, isAfter } from 'date-fns';
+import { useMemo, useState } from 'react';
+import { format, addDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Receipt, CheckCircle2, Clock, AlertCircle, Filter, DollarSign } from 'lucide-react';
+import { Receipt, CheckCircle2, Clock, AlertCircle, Undo2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AppLayout } from '@/components/navigation/AppLayout';
 import { cn } from '@/lib/utils';
+import { useDbEvents } from '@/hooks/useDbEvents';
+import { useDbLocations } from '@/hooks/useDbLocations';
+import { MedicalEventWithCalculations } from '@/types';
 
-// Mock data for payments
-const mockPayments = [
-  {
-    id: '1',
-    title: 'Plantão 12h - Hospital São Lucas',
-    date: new Date(2026, 1, 5),
-    paymentDate: new Date(2026, 2, 5),
-    value: 1200,
-    status: 'pending',
-  },
-  {
-    id: '2',
-    title: 'Consulta - Clínica Vida',
-    date: new Date(2026, 1, 3),
-    paymentDate: new Date(2026, 1, 10),
-    value: 350,
-    status: 'paid',
-  },
-  {
-    id: '3',
-    title: 'Plantão 24h - UPA Centro',
-    date: new Date(2026, 1, 1),
-    paymentDate: new Date(2026, 1, 15),
-    value: 2000,
-    status: 'overdue',
-  },
-  {
-    id: '4',
-    title: 'Plantão 12h - Hospital São Lucas',
-    date: new Date(2026, 1, 10),
-    paymentDate: new Date(2026, 2, 10),
-    value: 1200,
-    status: 'pending',
-  },
-];
+type PaymentView = {
+  id: string;
+  title: string;
+  eventDate: string;
+  dueDate: string;
+  value: number;
+  status: 'pending' | 'paid' | 'overdue';
+  paidAt: string | null;
+};
 
 const statusConfig = {
   pending: {
@@ -63,26 +40,115 @@ const statusConfig = {
   },
 };
 
+const formatCurrency = (value: number) =>
+  value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
 export default function PaymentsPage() {
   const [activeTab, setActiveTab] = useState('all');
-  const [payments] = useState(mockPayments);
+  const { events, updateEvent, isLoading: eventsLoading } = useDbEvents();
+  const { locations, isLoading: locationsLoading } = useDbLocations();
 
-  const filteredPayments = payments.filter(payment => {
-    if (activeTab === 'all') return true;
-    return payment.status === activeTab;
-  });
+  const isLoading = eventsLoading || locationsLoading;
 
-  const totalPending = payments
-    .filter(p => p.status === 'pending' || p.status === 'overdue')
-    .reduce((sum, p) => sum + p.value, 0);
+  // Build location deadline map
+  const locationDeadlineMap = useMemo(() => {
+    const map = new Map<string, { name: string; deadlineDays: number }>();
+    locations.forEach((loc) =>
+      map.set(loc.id, { name: loc.name, deadlineDays: loc.paymentDeadlineDays })
+    );
+    return map;
+  }, [locations]);
 
-  const totalPaid = payments
-    .filter(p => p.status === 'paid')
-    .reduce((sum, p) => sum + p.value, 0);
+  // Transform events into payment views
+  const payments: PaymentView[] = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
-  const formatCurrency = (value: number) => {
-    return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    return events
+      .filter((e) => e.status !== 'cancelled' && e.grossValue > 0)
+      .map((event: MedicalEventWithCalculations) => {
+        const locInfo = event.locationId ? locationDeadlineMap.get(event.locationId) : null;
+        const deadlineDays = locInfo?.deadlineDays ?? 30;
+        const locationName = locInfo?.name || event.locationName || '';
+
+        // Build title
+        let title = '';
+        if (event.type === 'shift') {
+          const dur = (event as any).duration || '12h';
+          title = `Plantão ${dur}`;
+        } else {
+          title = 'Consulta';
+        }
+        if (locationName) title += ` – ${locationName}`;
+
+        // Due date = event date + deadline days, or use explicit paymentDate
+        const eventDateObj = new Date(event.date + 'T12:00:00');
+        const dueDateObj = event.paymentDate
+          ? new Date(event.paymentDate + 'T12:00:00')
+          : addDays(eventDateObj, deadlineDays);
+        const dueDate = format(dueDateObj, 'yyyy-MM-dd');
+
+        // Status
+        let status: 'pending' | 'paid' | 'overdue' = 'pending';
+        if (event.paymentStatus === 'paid') {
+          status = 'paid';
+        } else if (dueDateObj < today) {
+          status = 'overdue';
+        }
+
+        return {
+          id: event.id,
+          title,
+          eventDate: event.date,
+          dueDate,
+          value: event.netValue,
+          status,
+          paidAt: null, // We don't have paid_at mapped yet in the hook
+        };
+      })
+      .sort((a, b) => new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime());
+  }, [events, locationDeadlineMap]);
+
+  const filteredPayments = useMemo(() => {
+    if (activeTab === 'all') return payments;
+    return payments.filter((p) => p.status === activeTab);
+  }, [payments, activeTab]);
+
+  const totalPending = useMemo(
+    () =>
+      payments
+        .filter((p) => p.status === 'pending' || p.status === 'overdue')
+        .reduce((sum, p) => sum + p.value, 0),
+    [payments]
+  );
+
+  const totalPaid = useMemo(
+    () => payments.filter((p) => p.status === 'paid').reduce((sum, p) => sum + p.value, 0),
+    [payments]
+  );
+
+  const handleMarkPaid = async (id: string) => {
+    await updateEvent(id, {
+      paymentStatus: 'paid',
+      paymentDate: new Date().toISOString().split('T')[0],
+    });
   };
+
+  const handleUnmarkPaid = async (id: string) => {
+    await updateEvent(id, {
+      paymentStatus: 'pending',
+    });
+  };
+
+  if (isLoading) {
+    return (
+      <AppLayout title="Pagamentos">
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout title="Pagamentos">
@@ -125,8 +191,8 @@ export default function PaymentsPage() {
 
         {/* Payments list */}
         <div className="space-y-3">
-          {filteredPayments.map(payment => {
-            const config = statusConfig[payment.status as keyof typeof statusConfig];
+          {filteredPayments.map((payment) => {
+            const config = statusConfig[payment.status];
             const StatusIcon = config.icon;
 
             return (
@@ -139,11 +205,11 @@ export default function PaymentsPage() {
                       </h3>
                       <div className="flex items-center gap-3 mt-2 text-sm text-muted-foreground">
                         <span>
-                          Evento: {format(payment.date, "dd/MM", { locale: ptBR })}
+                          Evento: {format(new Date(payment.eventDate + 'T12:00:00'), 'dd/MM', { locale: ptBR })}
                         </span>
                         <span>•</span>
                         <span>
-                          Venc.: {format(payment.paymentDate, "dd/MM", { locale: ptBR })}
+                          Venc.: {format(new Date(payment.dueDate + 'T12:00:00'), 'dd/MM', { locale: ptBR })}
                         </span>
                       </div>
                     </div>
@@ -151,20 +217,38 @@ export default function PaymentsPage() {
                       <p className="font-semibold text-foreground">
                         {formatCurrency(payment.value)}
                       </p>
-                      <Badge 
-                        variant="secondary" 
-                        className={cn("mt-1 text-xs", config.color)}
+                      <Badge
+                        variant="secondary"
+                        className={cn('mt-1 text-xs', config.color)}
                       >
                         <StatusIcon className="w-3 h-3 mr-1" />
                         {config.label}
                       </Badge>
                     </div>
                   </div>
-                  {payment.status === 'pending' && (
+                  {payment.status !== 'paid' && (
                     <div className="mt-3 pt-3 border-t border-border/50">
-                      <Button variant="outline" size="sm" className="w-full">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full"
+                        onClick={() => handleMarkPaid(payment.id)}
+                      >
                         <CheckCircle2 className="w-4 h-4 mr-2" />
                         Marcar como pago
+                      </Button>
+                    </div>
+                  )}
+                  {payment.status === 'paid' && (
+                    <div className="mt-3 pt-3 border-t border-border/50">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="w-full text-muted-foreground"
+                        onClick={() => handleUnmarkPaid(payment.id)}
+                      >
+                        <Undo2 className="w-4 h-4 mr-2" />
+                        Desmarcar pagamento
                       </Button>
                     </div>
                   )}
@@ -180,10 +264,9 @@ export default function PaymentsPage() {
               <Receipt className="w-12 h-12 text-muted-foreground mb-4" />
               <CardTitle className="text-lg mb-2">Nenhum pagamento</CardTitle>
               <CardDescription className="text-center">
-                {activeTab === 'all' 
-                  ? 'Nenhum pagamento registrado ainda'
-                  : `Nenhum pagamento com status "${statusConfig[activeTab as keyof typeof statusConfig]?.label}"`
-                }
+                {activeTab === 'all'
+                  ? 'Adicione eventos na Agenda para ver pagamentos aqui'
+                  : `Nenhum pagamento com status "${statusConfig[activeTab as keyof typeof statusConfig]?.label}"`}
               </CardDescription>
             </CardContent>
           </Card>
