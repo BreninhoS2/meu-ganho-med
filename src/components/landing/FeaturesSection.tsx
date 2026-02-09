@@ -491,6 +491,33 @@ export function FeaturesSection() {
   const isTrackpad = useRef(false);
   const lastDeltaTime = useRef(0);
   const deltaHistory = useRef<number[]>([]);
+  
+  // Cache layout values to avoid forced reflow on every wheel event
+  const cachedLayout = useRef<{
+    sectionTop: number;
+    sectionBottom: number;
+    viewportHeight: number;
+    headerHeight: number;
+    lastUpdate: number;
+  } | null>(null);
+  
+  // Update cached layout values periodically (not on every event)
+  const updateLayoutCache = useCallback(() => {
+    if (!sectionRef.current) return;
+    const now = Date.now();
+    // Only update if cache is stale (>100ms old) or doesn't exist
+    if (!cachedLayout.current || now - cachedLayout.current.lastUpdate > 100) {
+      const rect = sectionRef.current.getBoundingClientRect();
+      cachedLayout.current = {
+        sectionTop: rect.top,
+        sectionBottom: rect.bottom,
+        viewportHeight: window.innerHeight,
+        headerHeight: 80,
+        lastUpdate: now,
+      };
+    }
+    return cachedLayout.current;
+  }, []);
 
   // Lock body scroll when pinned - using class for performance
   useEffect(() => {
@@ -624,19 +651,23 @@ export function FeaturesSection() {
     rafId.current = null;
   }, [activeStep, changeStep]);
 
-  // Handle wheel events
+  // Handle wheel events - optimized to avoid forced reflow
   const handleWheel = useCallback((e: WheelEvent) => {
     if (!sectionRef.current) return;
 
-    const section = sectionRef.current;
-    const rect = section.getBoundingClientRect();
-    const viewportHeight = window.innerHeight;
-    const headerHeight = 80;
+    // Update cache if needed (batched read outside of write operations)
+    const now = Date.now();
+    if (!cachedLayout.current || now - cachedLayout.current.lastUpdate > 100) {
+      updateLayoutCache();
+    }
 
-    // Check if section is in view
-    const sectionTop = rect.top;
-    const sectionBottom = rect.bottom;
-    const isInView = sectionTop <= headerHeight + 100 && sectionBottom >= viewportHeight - 100;
+    // Use cached layout values instead of reading DOM on every event
+    const layout = cachedLayout.current;
+    if (!layout) return;
+
+    // Check if section is in view using cached values
+    const isInView = layout.sectionTop <= layout.headerHeight + 100 && 
+                     layout.sectionBottom >= layout.viewportHeight - 100;
 
     if (!isInView) {
       setIsPinned(false);
@@ -713,7 +744,7 @@ export function FeaturesSection() {
     if (!rafId.current) {
       rafId.current = requestAnimationFrame(processScroll);
     }
-  }, [activeStep, detectTrackpad, isLocked, isCardVisible, isTransitioning, processScroll]);
+  }, [activeStep, detectTrackpad, isLocked, isCardVisible, isTransitioning, processScroll, updateLayoutCache]);
 
   // Handle touch events for mobile-like gestures
   const touchStartY = useRef(0);
@@ -730,11 +761,12 @@ export function FeaturesSection() {
       return;
     }
 
-    const section = sectionRef.current;
-    const rect = section.getBoundingClientRect();
-    const viewportHeight = window.innerHeight;
-    const headerHeight = 80;
-    const isInView = rect.top <= headerHeight + 100 && rect.bottom >= viewportHeight - 100;
+    // Use cached layout values
+    const layout = cachedLayout.current;
+    if (!layout) return;
+
+    const isInView = layout.sectionTop <= layout.headerHeight + 100 && 
+                     layout.sectionBottom >= layout.viewportHeight - 100;
 
     if (!isInView) return;
 
@@ -760,11 +792,12 @@ export function FeaturesSection() {
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (!sectionRef.current) return;
 
-    const section = sectionRef.current;
-    const rect = section.getBoundingClientRect();
-    const viewportHeight = window.innerHeight;
-    const headerHeight = 80;
-    const isInView = rect.top <= headerHeight + 100 && rect.bottom >= viewportHeight - 100;
+    // Use cached layout values
+    const layout = cachedLayout.current;
+    if (!layout) return;
+
+    const isInView = layout.sectionTop <= layout.headerHeight + 100 && 
+                     layout.sectionBottom >= layout.viewportHeight - 100;
 
     if (!isInView || isLocked || isTransitioning) return;
 
@@ -786,25 +819,38 @@ export function FeaturesSection() {
     }
   }, [activeStep, changeStep, isLocked, isTransitioning]);
 
-  // Setup event listeners
+  // Setup event listeners with layout cache updates
   useEffect(() => {
     if (isMobile) return;
+
+    // Initial layout cache
+    updateLayoutCache();
+
+    // Update layout cache on scroll (passive, throttled by the cache itself)
+    const handleScroll = () => {
+      // Clear cache on scroll to force update on next wheel event
+      if (cachedLayout.current) {
+        cachedLayout.current.lastUpdate = 0;
+      }
+    };
 
     window.addEventListener('wheel', handleWheel, { passive: false });
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('touchstart', handleTouchStart, { passive: true });
     window.addEventListener('touchmove', handleTouchMove, { passive: false });
+    window.addEventListener('scroll', handleScroll, { passive: true });
 
     return () => {
       window.removeEventListener('wheel', handleWheel);
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('touchstart', handleTouchStart);
       window.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('scroll', handleScroll);
       if (rafId.current) {
         cancelAnimationFrame(rafId.current);
       }
     };
-  }, [handleWheel, handleKeyDown, handleTouchStart, handleTouchMove, isMobile]);
+  }, [handleWheel, handleKeyDown, handleTouchStart, handleTouchMove, isMobile, updateLayoutCache]);
 
   // Mobile version
   if (isMobile) {
