@@ -50,6 +50,29 @@ serve(async (req) => {
     if (!user?.email) throw new Error("User not authenticated or email not available");
     logStep("User authenticated", { userId: user.id, email: user.email });
 
+    // Check if user has admin role (all-access)
+    const { data: rolesData } = await supabaseClient
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user.id);
+    
+    const isAdmin = rolesData?.some(r => r.role === 'admin') ?? false;
+    logStep("Admin check", { isAdmin, roles: rolesData?.map(r => r.role) });
+
+    // If admin, grant premium access without checking Stripe
+    if (isAdmin) {
+      logStep("Admin user detected, granting premium access");
+      return new Response(JSON.stringify({
+        subscribed: true,
+        plan: "premium",
+        subscription_end: null,
+        is_admin: true,
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
+
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
     
@@ -58,7 +81,8 @@ serve(async (req) => {
       return new Response(JSON.stringify({ 
         subscribed: false,
         plan: null,
-        subscription_end: null 
+        subscription_end: null,
+        is_admin: false,
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
@@ -134,7 +158,8 @@ serve(async (req) => {
     return new Response(JSON.stringify({
       subscribed: hasActiveSub,
       plan: plan,
-      subscription_end: subscriptionEnd
+      subscription_end: subscriptionEnd,
+      is_admin: false,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
