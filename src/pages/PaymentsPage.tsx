@@ -171,24 +171,32 @@ export default function PaymentsPage() {
       <div className="space-y-4">
         {/* Summary cards */}
         <div className="grid grid-cols-2 gap-3">
-          <Card>
-            <CardContent className="pt-4">
+          <Card className="overflow-hidden">
+            <CardContent className="pt-4 min-w-0">
               <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                <Clock className="w-4 h-4" />
+                <Clock className="w-4 h-4 flex-shrink-0" />
                 <span className="text-xs">A receber</span>
               </div>
-              <p className="text-xl font-bold text-foreground">
+              <p
+                className="text-lg sm:text-xl font-bold text-foreground truncate min-w-0"
+                style={{ fontVariantNumeric: 'tabular-nums' }}
+                title={formatCurrency(totalPending)}
+              >
                 {formatCurrency(totalPending)}
               </p>
             </CardContent>
           </Card>
-          <Card>
-            <CardContent className="pt-4">
+          <Card className="overflow-hidden">
+            <CardContent className="pt-4 min-w-0">
               <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                <CheckCircle2 className="w-4 h-4" />
+                <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
                 <span className="text-xs">Recebido</span>
               </div>
-              <p className="text-xl font-bold text-primary">
+              <p
+                className="text-lg sm:text-xl font-bold text-primary truncate min-w-0"
+                style={{ fontVariantNumeric: 'tabular-nums' }}
+                title={formatCurrency(totalPaid)}
+              >
                 {formatCurrency(totalPaid)}
               </p>
             </CardContent>
