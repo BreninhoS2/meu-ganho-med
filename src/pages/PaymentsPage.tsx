@@ -22,6 +22,15 @@ type PaymentView = {
   paidAt: string | null;
 };
 
+/** Single source of truth for payment status */
+function getPaymentStatus(isPaid: boolean, dueDateStr: string): 'pending' | 'paid' | 'overdue' {
+  if (isPaid) return 'paid';
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const due = new Date(dueDateStr + 'T00:00:00');
+  return due < today ? 'overdue' : 'pending';
+}
+
 const statusConfig = {
   pending: {
     label: 'Pendente',
@@ -61,9 +70,6 @@ export default function PaymentsPage() {
 
   // Transform events into payment views
   const payments: PaymentView[] = useMemo(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
     return events
       .filter((e) => e.status !== 'cancelled' && e.grossValue > 0)
       .map((event: MedicalEventWithCalculations) => {
@@ -81,22 +87,13 @@ export default function PaymentsPage() {
         }
         if (locationName) title += ` – ${locationName}`;
 
-        // Due date = event date + deadline days, or use explicit paymentDate
+        // Due date = event date + deadline days (never overridden by paymentDate)
         const eventDateObj = new Date(event.date + 'T12:00:00');
-        const dueDateObj = event.paymentDate
-          ? new Date(event.paymentDate + 'T12:00:00')
-          : addDays(eventDateObj, deadlineDays);
+        const dueDateObj = addDays(eventDateObj, deadlineDays);
         const dueDate = format(dueDateObj, 'yyyy-MM-dd');
 
-        // Status: paid_at (mapped as paymentStatus=paid) takes priority
-        // Otherwise compare due date (date-only) vs today
-        const dueDateOnly = new Date(dueDateObj.getFullYear(), dueDateObj.getMonth(), dueDateObj.getDate());
-        let status: 'pending' | 'paid' | 'overdue' = 'pending';
-        if (event.paymentStatus === 'paid') {
-          status = 'paid';
-        } else if (dueDateOnly < today) {
-          status = 'overdue';
-        }
+        const isPaid = event.paymentStatus === 'paid';
+        const status = getPaymentStatus(isPaid, dueDate);
 
         return {
           id: event.id,
@@ -105,15 +102,29 @@ export default function PaymentsPage() {
           dueDate,
           value: event.netValue,
           status,
-          paidAt: null, // We don't have paid_at mapped yet in the hook
+          paidAt: isPaid ? (event.paymentDate || null) : null,
         };
-      })
-      .sort((a, b) => new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime());
+      });
   }, [events, locationDeadlineMap]);
 
+  // Memoized counts
+  const counts = useMemo(() => ({
+    all: payments.length,
+    pending: payments.filter((p) => p.status === 'pending').length,
+    paid: payments.filter((p) => p.status === 'paid').length,
+    overdue: payments.filter((p) => p.status === 'overdue').length,
+  }), [payments]);
+
+  // Filtered + sorted per tab
   const filteredPayments = useMemo(() => {
-    if (activeTab === 'all') return payments;
-    return payments.filter((p) => p.status === activeTab);
+    const list = activeTab === 'all' ? [...payments] : payments.filter((p) => p.status === activeTab);
+    if (activeTab === 'paid') {
+      return list.sort((a, b) => (b.paidAt || '').localeCompare(a.paidAt || ''));
+    }
+    if (activeTab === 'overdue' || activeTab === 'pending') {
+      return list.sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+    }
+    return list.sort((a, b) => b.dueDate.localeCompare(a.dueDate));
   }, [payments, activeTab]);
 
   const totalPending = useMemo(
@@ -130,17 +141,11 @@ export default function PaymentsPage() {
   );
 
   const handleMarkPaid = async (id: string) => {
-    await updateEvent(id, {
-      paymentStatus: 'paid',
-      paymentDate: new Date().toISOString().split('T')[0],
-    });
+    await updateEvent(id, { paymentStatus: 'paid' });
   };
 
   const handleUnmarkPaid = async (id: string) => {
-    await updateEvent(id, {
-      paymentStatus: 'pending',
-      paymentDate: undefined,
-    });
+    await updateEvent(id, { paymentStatus: 'pending' });
   };
 
   if (isLoading) {
@@ -187,26 +192,26 @@ export default function PaymentsPage() {
           <TabsList className="w-full grid grid-cols-4">
             <TabsTrigger value="all" className="gap-1.5">
               Todos
-              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 bg-muted-foreground/20 text-muted-foreground">
-                {payments.length}
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 bg-muted text-muted-foreground">
+                {counts.all}
               </Badge>
             </TabsTrigger>
             <TabsTrigger value="pending" className="gap-1.5">
               Pend.
               <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 bg-amber-500/20 text-amber-600">
-                {payments.filter(p => p.status === 'pending').length}
+                {counts.pending}
               </Badge>
             </TabsTrigger>
             <TabsTrigger value="paid" className="gap-1.5">
               Pagos
               <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 bg-emerald-500/20 text-emerald-600">
-                {payments.filter(p => p.status === 'paid').length}
+                {counts.paid}
               </Badge>
             </TabsTrigger>
             <TabsTrigger value="overdue" className="gap-1.5">
               Atras.
               <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 bg-destructive/20 text-destructive">
-                {payments.filter(p => p.status === 'overdue').length}
+                {counts.overdue}
               </Badge>
             </TabsTrigger>
           </TabsList>
