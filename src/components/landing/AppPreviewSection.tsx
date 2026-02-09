@@ -252,7 +252,7 @@ export function AppPreviewSection() {
   ];
 
   return (
-    <section className="relative py-20 lg:py-28 overflow-hidden bg-gradient-to-b from-background via-muted/30 to-background">
+    <section className="relative pt-8 pb-20 lg:pt-12 lg:pb-28 overflow-hidden bg-gradient-to-b from-background via-muted/30 to-background">
       {/* Subtle background pattern */}
       <div className="absolute inset-0 opacity-30">
         <div
