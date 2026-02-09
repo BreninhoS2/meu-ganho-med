@@ -26,12 +26,13 @@ import {
 
 // ============ CONFIGURAÇÃO DO SCROLLYTELLING ============
 const CONFIG = {
-  DELTA_THRESHOLD: 320,      // Quantidade de scroll acumulado para trocar card
-  LOCK_MS: 1000,             // Lock após troca (ms)
-  MIN_DWELL_MS: 1200,        // Tempo mínimo no card antes de poder trocar
-  TRANSITION_DURATION: 0.75, // Duração da animação (segundos)
-  TRACKPAD_MULTIPLIER: 0.6,  // Multiplicador para trackpad (delta menor)
-  EXIT_THRESHOLD: 320,       // Threshold extra para sair da seção
+  DELTA_THRESHOLD: 700,      // Quantidade de scroll acumulado para trocar card (aumentado)
+  LOCK_MS: 1200,             // Lock após troca (ms) - mais lento
+  MIN_DWELL_MS: 1500,        // Tempo mínimo no card antes de poder trocar
+  TRANSITION_DURATION: 0.85, // Duração da animação (segundos)
+  TRACKPAD_MULTIPLIER: 0.4,  // Multiplicador para trackpad (delta menor)
+  EXIT_THRESHOLD: 500,       // Threshold extra para sair da seção
+  MAX_DELTA_PER_FRAME: 80,   // Limitar delta máximo por evento (clamp)
 };
 
 const planData = [
@@ -581,7 +582,9 @@ export function FeaturesSection() {
     detectTrackpad(e.deltaY);
 
     const rawDelta = e.deltaY;
-    const delta = isTrackpad.current ? rawDelta * CONFIG.TRACKPAD_MULTIPLIER : rawDelta;
+    // Clamp delta per frame to prevent fast scrolls from triggering instant changes
+    const clampedDelta = Math.sign(rawDelta) * Math.min(Math.abs(rawDelta), CONFIG.MAX_DELTA_PER_FRAME);
+    const delta = isTrackpad.current ? clampedDelta * CONFIG.TRACKPAD_MULTIPLIER : clampedDelta;
     const scrollingDown = delta > 0;
     const scrollingUp = delta < 0;
 
@@ -724,7 +727,7 @@ export function FeaturesSection() {
       id="recursos" 
       ref={sectionRef}
       className="relative bg-gradient-to-b from-background via-muted/5 to-background overflow-visible"
-      style={{ minHeight: '160vh' }}
+      style={{ minHeight: '125vh' }}
     >
       {/* Sticky container */}
       <div 
@@ -734,11 +737,11 @@ export function FeaturesSection() {
           height: 'calc(100vh - 80px)',
         }}
       >
-        <div className="container px-4 h-full flex flex-col py-4">
+        <div className="container px-4 h-full flex flex-col py-2">
           {/* Header */}
-          <div className="text-center mb-3 shrink-0">
-            <Badge variant="secondary" className="mb-2">Recursos</Badge>
-            <h2 className="text-2xl lg:text-3xl font-bold text-foreground mb-1">
+          <div className="text-center mb-2 shrink-0">
+            <Badge variant="secondary" className="mb-1">Recursos</Badge>
+            <h2 className="text-2xl lg:text-3xl font-bold text-foreground mb-0.5">
               Principais recursos
             </h2>
             <p className="text-sm text-muted-foreground max-w-xl mx-auto">
@@ -747,7 +750,7 @@ export function FeaturesSection() {
           </div>
 
           {/* Progress indicator */}
-          <div className="mb-3 shrink-0">
+          <div className="mb-2 shrink-0">
             <ProgressIndicator 
               activeIndex={activeStep} 
               scrollProgress={scrollProgress}
@@ -761,8 +764,8 @@ export function FeaturesSection() {
             className="relative flex-1 w-full mx-auto overflow-visible"
             style={{ 
               maxWidth: 'min(980px, 92vw)',
-              minHeight: 'min(480px, calc(100vh - 240px))',
-              maxHeight: 'calc(100vh - 240px)',
+              minHeight: 'min(440px, calc(100vh - 200px))',
+              maxHeight: 'calc(100vh - 200px)',
             }}
           >
             <AnimatePresence mode="wait" initial={false}>
@@ -776,7 +779,7 @@ export function FeaturesSection() {
 
           {/* Scroll hint */}
           <motion.div 
-            className="text-center mt-2 shrink-0"
+            className="text-center mt-1 shrink-0"
             animate={{ opacity: isLocked ? 0.3 : [0.5, 1, 0.5] }}
             transition={{ duration: 2, repeat: isLocked ? 0 : Infinity }}
           >
