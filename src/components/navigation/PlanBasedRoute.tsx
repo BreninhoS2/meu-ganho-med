@@ -28,6 +28,10 @@ export function PlanBasedRoute({ children, routePath }: PlanBasedRouteProps) {
     return <Navigate to="/auth" state={{ from: location }} replace />;
   }
 
+  // TEMPORARY: Skip all plan checks for development/testing
+  // TODO: Remove this bypass before production
+  return <>{children}</>;
+
   // Admin users can access all routes
   if (subscription.isAdmin) {
     return <>{children}</>;
