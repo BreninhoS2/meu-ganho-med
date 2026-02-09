@@ -30,7 +30,7 @@ const steps = [{
   iconColor: "text-money"
 }];
 export function HowItWorksSection() {
-  return <section id="como-funciona" className="py-20 lg:py-32 relative overflow-hidden">
+  return <section id="como-funciona" className="py-16 lg:py-24 relative overflow-visible">
       {/* Background */}
       <div className="absolute inset-0 bg-muted/30" />
       <div className="absolute inset-0 opacity-50">
@@ -40,7 +40,7 @@ export function HowItWorksSection() {
       }} />
       </div>
 
-      <div className="container relative z-10 px-4">
+      <div className="container relative z-10 px-4 pt-4">
         <ScrollReveal>
           <div className="text-center mb-16">
             <Badge variant="secondary" className="mb-4">Como funciona</Badge>
@@ -53,14 +53,14 @@ export function HowItWorksSection() {
           </div>
         </ScrollReveal>
 
-        <StaggerContainer className="grid md:grid-cols-3 gap-6 lg:gap-8 max-w-5xl mx-auto">
-          {steps.map((step, index) => <StaggerItem key={step.number}>
+        <StaggerContainer className="grid md:grid-cols-3 gap-6 lg:gap-8 max-w-5xl mx-auto pt-8">
+          {steps.map((step, index) => <StaggerItem key={step.number} className="overflow-visible">
               <motion.div whileHover={{
             y: -8
           }} transition={{
             duration: 0.3,
             ease: "easeOut"
-          }} className="relative h-full">
+          }} className="relative h-full overflow-visible">
                 {/* Connecting arrow (hidden on mobile) */}
                 {index < steps.length - 1 && <div className="hidden md:flex absolute top-16 -right-4 lg:-right-5 w-8 lg:w-10 items-center justify-center z-10">
                     <motion.div initial={{
@@ -78,12 +78,12 @@ export function HowItWorksSection() {
                     </motion.div>
                   </div>}
 
-                <div className={`relative bg-card border border-border/50 rounded-2xl p-8 lg:p-10 shadow-elevated group overflow-hidden h-full min-h-[280px]`}>
+                <div className={`relative bg-card border border-border/50 rounded-2xl p-8 lg:p-10 shadow-elevated group overflow-visible h-full min-h-[280px] mt-4`}>
                   {/* Gradient background on hover */}
                   <div className="" />
                   
-                  {/* Step number badge */}
-                  <motion.div className="absolute -top-3 left-8 bg-primary text-primary-foreground text-sm font-bold w-10 h-10 rounded-full items-center justify-center flex flex-row mb-0 shadow-lg" whileHover={{
+                  {/* Step number badge - positioned properly outside card */}
+                  <motion.div className="absolute -top-5 left-8 bg-primary text-primary-foreground text-sm font-bold w-10 h-10 rounded-full flex items-center justify-center shadow-lg z-10" whileHover={{
                 scale: 1.05
               }}>
                     {step.number}
