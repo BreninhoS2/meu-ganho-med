@@ -31,7 +31,7 @@ export function PricingSection() {
   };
 
   return (
-    <section id="precos" className="py-20 lg:py-32 relative overflow-hidden">
+    <section id="precos" className="py-16 lg:py-24 relative overflow-visible">
       {/* Background */}
       <div className="absolute inset-0 bg-gradient-to-b from-muted/30 via-background to-background" />
       
@@ -41,7 +41,7 @@ export function PricingSection() {
 
       <div className="container relative z-10 px-4">
         <ScrollReveal>
-          <div className="text-center mb-16">
+          <div className="text-center mb-12 lg:mb-16">
             <Badge variant="secondary" className="mb-4">Preços</Badge>
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-4">
               Escolha seu plano
@@ -52,7 +52,8 @@ export function PricingSection() {
           </div>
         </ScrollReveal>
 
-        <StaggerContainer className="grid md:grid-cols-3 gap-6 lg:gap-8 max-w-6xl mx-auto" staggerDelay={0.1}>
+        {/* Extra padding top to prevent badge cutting */}
+        <StaggerContainer className="grid md:grid-cols-3 gap-6 lg:gap-8 max-w-6xl mx-auto pt-6" staggerDelay={0.1}>
           {plans.map((planKey) => {
             const plan = STRIPE_PLANS[planKey];
             const features = PLAN_FEATURES[planKey];
@@ -61,11 +62,11 @@ export function PricingSection() {
             const PlanIcon = planIcons[planKey];
 
             return (
-              <StaggerItem key={planKey}>
+              <StaggerItem key={planKey} className="overflow-visible">
                 <motion.div
                   whileHover={{ y: -8 }}
                   transition={{ duration: 0.3 }}
-                  className={`relative bg-card border rounded-2xl overflow-hidden h-full flex flex-col ${
+                  className={`relative bg-card border rounded-2xl overflow-visible h-full flex flex-col ${
                     isPopular 
                       ? "border-primary shadow-xl ring-2 ring-primary/20" 
                       : "border-border/50 shadow-elevated"
@@ -73,12 +74,12 @@ export function PricingSection() {
                 >
                   {/* Popular ribbon */}
                   {isPopular && (
-                    <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-primary via-primary to-accent" />
+                    <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-primary via-primary to-accent rounded-t-2xl" />
                   )}
                   
-                  {/* Popular Badge */}
+                  {/* Popular Badge - positioned above card with proper spacing */}
                   {isPopular && (
-                    <Badge className="absolute -top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-primary text-primary-foreground shadow-lg px-4">
+                    <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground shadow-lg px-4 py-1 whitespace-nowrap z-10">
                       ⭐ Mais vendido
                     </Badge>
                   )}
