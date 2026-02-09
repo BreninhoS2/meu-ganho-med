@@ -42,7 +42,8 @@ export interface BaseEvent {
   discountType: DiscountType;
   status: EventStatus;
   paymentStatus: PaymentStatus;
-  paymentDate?: string; // Expected or actual payment date
+  paymentDate?: string; // Expected/due payment date
+  paidAt?: string; // Actual payment timestamp (source of truth for "paid")
   notes?: string;
   createdAt: string;
 }

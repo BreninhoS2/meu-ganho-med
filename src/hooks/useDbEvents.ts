@@ -26,6 +26,7 @@ interface DbEvent {
   status: string;
   payment_status: string;
   payment_date: string | null;
+  paid_at: string | null;
   duration: string | null;
   custom_hours: number | null;
   start_time: string | null;
@@ -50,6 +51,7 @@ function mapDbEventToMedicalEvent(dbEvent: DbEvent): MedicalEvent {
     status: dbEvent.status as 'scheduled' | 'completed' | 'cancelled',
     paymentStatus: dbEvent.payment_status as 'paid' | 'pending',
     paymentDate: dbEvent.payment_date || undefined,
+    paidAt: dbEvent.paid_at || undefined,
     notes: dbEvent.notes || undefined,
     createdAt: dbEvent.created_at,
   };
@@ -87,6 +89,7 @@ function mapMedicalEventToDb(event: Omit<MedicalEvent, 'id' | 'createdAt'>, user
     status: event.status,
     payment_status: event.paymentStatus,
     payment_date: event.paymentDate || null,
+    paid_at: event.paidAt || null,
     notes: event.notes || null,
   };
 
@@ -247,6 +250,7 @@ export function useDbEvents() {
       if (updates.status !== undefined) updateData.status = updates.status;
       if (updates.paymentStatus !== undefined) updateData.payment_status = updates.paymentStatus;
       if (updates.paymentDate !== undefined) updateData.payment_date = updates.paymentDate;
+      if ('paidAt' in updates) updateData.paid_at = updates.paidAt || null;
       if (updates.notes !== undefined) updateData.notes = updates.notes;
       
       // Shift-specific fields
