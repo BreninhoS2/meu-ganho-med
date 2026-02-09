@@ -7,6 +7,7 @@ interface SubscriptionData {
   subscribed: boolean;
   plan: PlanType | null;
   subscriptionEnd: string | null;
+  isAdmin: boolean;
 }
 
 interface AuthContextType {
@@ -34,12 +35,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     subscribed: false,
     plan: null,
     subscriptionEnd: null,
+    isAdmin: false,
   });
   const [isLoading, setIsLoading] = useState(true);
 
   const checkSubscription = async () => {
     if (!session) {
-      setSubscription({ subscribed: false, plan: null, subscriptionEnd: null });
+      setSubscription({ subscribed: false, plan: null, subscriptionEnd: null, isAdmin: false });
       return;
     }
 
@@ -55,6 +57,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         subscribed: data.subscribed,
         plan: data.plan as PlanType | null,
         subscriptionEnd: data.subscription_end,
+        isAdmin: data.is_admin ?? false,
       });
     } catch (error) {
       console.error('Error checking subscription:', error);
@@ -91,7 +94,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             checkSubscription();
           }, 0);
         } else {
-          setSubscription({ subscribed: false, plan: null, subscriptionEnd: null });
+          setSubscription({ subscribed: false, plan: null, subscriptionEnd: null, isAdmin: false });
         }
 
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
@@ -174,7 +177,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signOut = async () => {
     localStorage.removeItem('plantaomed_last_activity');
     await supabase.auth.signOut();
-    setSubscription({ subscribed: false, plan: null, subscriptionEnd: null });
+    setSubscription({ subscribed: false, plan: null, subscriptionEnd: null, isAdmin: false });
   };
 
   const resetPassword = async (email: string) => {
@@ -185,6 +188,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const hasFeature = (featureKey: string): boolean => {
+    // Admin users have all features
+    if (subscription.isAdmin) {
+      return true;
+    }
+    
     if (!subscription.subscribed || !subscription.plan) {
       return false;
     }

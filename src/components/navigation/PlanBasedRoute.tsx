@@ -33,6 +33,11 @@ export function PlanBasedRoute({ children, routePath }: PlanBasedRouteProps) {
     return <Navigate to="/subscribe" state={{ from: location }} replace />;
   }
 
+  // Admin users can access all routes
+  if (subscription.isAdmin) {
+    return <>{children}</>;
+  }
+
   // Check if user can access this route
   if (!canAccessRoute(subscription.plan, routePath)) {
     const requiredPlan = getRequiredPlanForRoute(routePath);
