@@ -18,13 +18,13 @@ import {
 const fixedItems = [
   { to: '/start', icon: Home, label: 'Início' },
   { to: '/agenda', icon: Calendar, label: 'Agenda' },
-  { to: '/calendario', icon: CalendarDays, label: 'Calendário' },
+  { to: '/pagamentos', icon: Receipt, label: 'Pagamentos' },
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/locais', icon: Building2, label: 'Locais' },
 ];
 
 const menuItems = [
-  { to: '/pagamentos', icon: Receipt, label: 'Pagamentos' },
+  { to: '/calendario', icon: CalendarDays, label: 'Calendário' },
   { to: '/config', icon: Settings, label: 'Config' },
 ];
 

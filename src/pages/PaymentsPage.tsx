@@ -88,11 +88,13 @@ export default function PaymentsPage() {
           : addDays(eventDateObj, deadlineDays);
         const dueDate = format(dueDateObj, 'yyyy-MM-dd');
 
-        // Status
+        // Status: paid_at (mapped as paymentStatus=paid) takes priority
+        // Otherwise compare due date (date-only) vs today
+        const dueDateOnly = new Date(dueDateObj.getFullYear(), dueDateObj.getMonth(), dueDateObj.getDate());
         let status: 'pending' | 'paid' | 'overdue' = 'pending';
         if (event.paymentStatus === 'paid') {
           status = 'paid';
-        } else if (dueDateObj < today) {
+        } else if (dueDateOnly < today) {
           status = 'overdue';
         }
 
@@ -137,6 +139,7 @@ export default function PaymentsPage() {
   const handleUnmarkPaid = async (id: string) => {
     await updateEvent(id, {
       paymentStatus: 'pending',
+      paymentDate: undefined,
     });
   };
 
@@ -179,13 +182,33 @@ export default function PaymentsPage() {
           </Card>
         </div>
 
-        {/* Filter tabs */}
+        {/* Filter tabs with colored badges */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="w-full grid grid-cols-4">
-            <TabsTrigger value="all">Todos</TabsTrigger>
-            <TabsTrigger value="pending">Pendentes</TabsTrigger>
-            <TabsTrigger value="paid">Pagos</TabsTrigger>
-            <TabsTrigger value="overdue">Atrasados</TabsTrigger>
+            <TabsTrigger value="all" className="gap-1.5">
+              Todos
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 bg-muted-foreground/20 text-muted-foreground">
+                {payments.length}
+              </Badge>
+            </TabsTrigger>
+            <TabsTrigger value="pending" className="gap-1.5">
+              Pend.
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 bg-amber-500/20 text-amber-600">
+                {payments.filter(p => p.status === 'pending').length}
+              </Badge>
+            </TabsTrigger>
+            <TabsTrigger value="paid" className="gap-1.5">
+              Pagos
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 bg-emerald-500/20 text-emerald-600">
+                {payments.filter(p => p.status === 'paid').length}
+              </Badge>
+            </TabsTrigger>
+            <TabsTrigger value="overdue" className="gap-1.5">
+              Atras.
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 bg-destructive/20 text-destructive">
+                {payments.filter(p => p.status === 'overdue').length}
+              </Badge>
+            </TabsTrigger>
           </TabsList>
         </Tabs>
 
