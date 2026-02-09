@@ -136,13 +136,13 @@ function FloatingIcon({
   );
 }
 
-// Illustration panel for each card
+// Illustration panel for each card - more compact
 function IllustrationPanel({ plan, isActive }: { plan: typeof planData[0]; isActive: boolean }) {
   const positions = [
-    { top: '10%', right: '10%' },
-    { top: '25%', left: '5%' },
-    { bottom: '20%', right: '15%' },
-    { bottom: '10%', left: '10%' },
+    { top: '8%', right: '8%' },
+    { top: '20%', left: '4%' },
+    { bottom: '15%', right: '12%' },
+    { bottom: '8%', left: '8%' },
   ];
 
   const colorClasses: Record<string, string> = {
@@ -152,30 +152,30 @@ function IllustrationPanel({ plan, isActive }: { plan: typeof planData[0]; isAct
   };
 
   return (
-    <div className="relative w-full h-full min-h-[200px] lg:min-h-[300px]">
+    <div className="relative w-full h-full min-h-[160px] lg:min-h-[200px]">
       {/* Central glow */}
       <motion.div 
-        className={`absolute inset-0 rounded-3xl bg-gradient-radial ${plan.bgGradient} opacity-60`}
+        className={`absolute inset-0 rounded-2xl bg-gradient-radial ${plan.bgGradient} opacity-50`}
         animate={{ 
-          scale: isActive ? [1, 1.05, 1] : 1,
-          opacity: isActive ? [0.4, 0.7, 0.4] : 0.3,
+          scale: isActive ? [1, 1.03, 1] : 1,
+          opacity: isActive ? [0.3, 0.5, 0.3] : 0.2,
         }}
         transition={{ duration: 3, repeat: Infinity }}
       />
       
       {/* Main icon in center */}
       <motion.div
-        className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-20 h-20 lg:w-28 lg:h-28 rounded-2xl ${colorClasses[plan.color]} flex items-center justify-center shadow-2xl`}
+        className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 lg:w-20 lg:h-20 rounded-xl ${colorClasses[plan.color]} flex items-center justify-center shadow-xl`}
         animate={{ 
-          scale: isActive ? [1, 1.08, 1] : 0.9,
-          rotate: isActive ? [0, 3, 0, -3, 0] : 0,
+          scale: isActive ? [1, 1.05, 1] : 0.9,
+          rotate: isActive ? [0, 2, 0, -2, 0] : 0,
         }}
         transition={{ duration: 4, repeat: Infinity }}
       >
-        <plan.icon className="w-10 h-10 lg:w-14 lg:h-14" />
+        <plan.icon className="w-8 h-8 lg:w-10 lg:h-10" />
       </motion.div>
 
-      {/* Floating icons */}
+      {/* Floating icons - smaller */}
       <AnimatePresence mode="wait">
         {isActive && plan.floatingIcons.map((icon, i) => (
           <FloatingIcon 
@@ -188,14 +188,14 @@ function IllustrationPanel({ plan, isActive }: { plan: typeof planData[0]; isAct
         ))}
       </AnimatePresence>
 
-      {/* Decorative circles */}
+      {/* Decorative circles - smaller */}
       <motion.div
-        className={`absolute top-1/4 right-1/4 w-32 h-32 rounded-full border-2 ${plan.borderColor} opacity-30`}
+        className={`absolute top-1/4 right-1/4 w-20 h-20 rounded-full border ${plan.borderColor} opacity-20`}
         animate={{ scale: [1, 1.1, 1], rotate: 360 }}
         transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
       />
       <motion.div
-        className={`absolute bottom-1/4 left-1/4 w-24 h-24 rounded-full border ${plan.borderColor} opacity-20`}
+        className={`absolute bottom-1/4 left-1/4 w-16 h-16 rounded-full border ${plan.borderColor} opacity-15`}
         animate={{ scale: [1.1, 1, 1.1], rotate: -360 }}
         transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
       />
@@ -257,73 +257,74 @@ function HeroCard({ plan, direction }: HeroCardProps) {
     >
       <div 
         className={`
-          h-full w-full rounded-3xl border-2 ${plan.borderColor}
+          h-full w-full rounded-2xl border-2 ${plan.borderColor}
           bg-gradient-to-br ${plan.bgGradient} bg-card
-          shadow-2xl overflow-visible
+          shadow-xl overflow-visible
         `}
         style={{
-          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.05)',
+          boxShadow: '0 20px 40px -12px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(0, 0, 0, 0.05)',
         }}
       >
-        <div className="h-full flex flex-col lg:flex-row p-6 lg:p-10 gap-6 lg:gap-10">
+        <div className="h-full flex flex-col lg:flex-row p-4 lg:p-6 gap-4 lg:gap-6">
           {/* Content side */}
-          <div className="flex-1 flex flex-col justify-center">
+          <div className="flex-1 flex flex-col">
             {/* Header */}
-            <div className="flex items-center gap-3 mb-4">
+            <div className="flex items-center gap-2.5 mb-3">
               <motion.div 
-                className={`w-14 h-14 rounded-2xl ${plan.badgeBg} flex items-center justify-center shadow-lg`}
+                className={`w-11 h-11 rounded-xl ${plan.badgeBg} flex items-center justify-center shadow-md`}
                 initial={{ scale: 0.8, rotate: -10 }}
                 animate={{ scale: 1, rotate: 0 }}
                 transition={{ delay: 0.2, duration: 0.4, ease: "easeOut" }}
               >
-                <PlanIcon className="w-7 h-7" />
+                <PlanIcon className="w-5 h-5" />
               </motion.div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h3 className="text-2xl lg:text-3xl font-bold text-foreground">Plano {plan.name}</h3>
+                  <h3 className="text-xl lg:text-2xl font-bold text-foreground">Plano {plan.name}</h3>
                   <Badge className={`${plan.badgeBg} text-xs`}>{plan.name}</Badge>
                 </div>
-                <p className="text-sm lg:text-base text-muted-foreground">{plan.tagline}</p>
+                <p className="text-xs lg:text-sm text-muted-foreground">{plan.tagline}</p>
               </div>
             </div>
 
             {/* Bullets with staggered animation */}
-            <div className="space-y-3 mb-6 flex-1">
+            <div className="space-y-2 mb-4 flex-1">
               {plan.bullets.map((bullet, i) => (
                 <motion.div 
                   key={i} 
-                  className="flex items-start gap-3"
+                  className="flex items-start gap-2"
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.3 + i * 0.06, duration: 0.4 }}
+                  transition={{ delay: 0.3 + i * 0.05, duration: 0.4 }}
                 >
-                  <div className={`w-5 h-5 rounded-full ${plan.badgeBg} flex items-center justify-center shrink-0 mt-0.5`}>
-                    <Check className="w-3 h-3" />
+                  <div className={`w-4 h-4 rounded-full ${plan.badgeBg} flex items-center justify-center shrink-0 mt-0.5`}>
+                    <Check className="w-2.5 h-2.5" />
                   </div>
-                  <span className="text-sm lg:text-base text-foreground">{bullet}</span>
+                  <span className="text-sm text-foreground">{bullet}</span>
                 </motion.div>
               ))}
             </div>
 
             {/* CTA */}
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.6, duration: 0.4 }}
+              transition={{ delay: 0.5, duration: 0.4 }}
+              className="mt-auto"
             >
               <Button 
                 onClick={scrollToSection}
                 variant={plan.id === "pro" ? "default" : "outline"}
-                size="lg"
-                className="w-full lg:w-auto lg:px-8 font-semibold shadow-lg"
+                size="default"
+                className="w-full lg:w-auto lg:px-6 font-semibold shadow-md"
               >
                 Ver detalhes do plano {plan.name}
               </Button>
             </motion.div>
           </div>
 
-          {/* Illustration side */}
-          <div className="flex-1 relative hidden lg:block">
+          {/* Illustration side - narrower */}
+          <div className="w-[38%] relative hidden lg:block">
             <IllustrationPanel plan={plan} isActive={true} />
           </div>
         </div>
@@ -763,9 +764,9 @@ export function FeaturesSection() {
           <div 
             className="relative flex-1 w-full mx-auto overflow-visible"
             style={{ 
-              maxWidth: 'min(980px, 92vw)',
-              minHeight: 'min(440px, calc(100vh - 200px))',
-              maxHeight: 'calc(100vh - 200px)',
+              maxWidth: 'min(880px, 92vw)',
+              minHeight: 'min(360px, calc(100vh - 180px))',
+              maxHeight: 'calc(100vh - 180px)',
             }}
           >
             <AnimatePresence mode="wait" initial={false}>
