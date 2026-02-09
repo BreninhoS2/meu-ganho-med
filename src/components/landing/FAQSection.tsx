@@ -1,12 +1,15 @@
 "use client";
 
+import { motion } from "framer-motion";
 import { ScrollReveal } from "./ScrollReveal";
+import { Badge } from "@/components/ui/badge";
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { HelpCircle } from "lucide-react";
 
 const faqs = [
   {
@@ -46,10 +49,14 @@ const faqs = [
 export function FAQSection() {
   return (
     <section id="faq" className="py-20 lg:py-32 relative overflow-hidden">
+      {/* Background */}
+      <div className="absolute inset-0 bg-gradient-to-b from-background via-muted/10 to-background" />
+
       <div className="container relative z-10 px-4">
         <ScrollReveal>
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
+            <Badge variant="secondary" className="mb-4">FAQ</Badge>
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-4">
               Perguntas frequentes
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
@@ -62,18 +69,28 @@ export function FAQSection() {
           <div className="max-w-3xl mx-auto">
             <Accordion type="single" collapsible className="space-y-4">
               {faqs.map((faq, index) => (
-                <AccordionItem
+                <motion.div
                   key={index}
-                  value={`item-${index}`}
-                  className="bg-card border border-border/50 rounded-xl px-6 data-[state=open]:shadow-elevated transition-shadow"
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                  viewport={{ once: true }}
                 >
-                  <AccordionTrigger className="text-left font-medium hover:no-underline py-5">
-                    {faq.question}
-                  </AccordionTrigger>
-                  <AccordionContent className="text-muted-foreground pb-5">
-                    {faq.answer}
-                  </AccordionContent>
-                </AccordionItem>
+                  <AccordionItem
+                    value={`item-${index}`}
+                    className="bg-card border border-border/50 rounded-xl px-6 data-[state=open]:shadow-elevated transition-all duration-300 overflow-hidden"
+                  >
+                    <AccordionTrigger className="text-left font-medium hover:no-underline py-5 group">
+                      <div className="flex items-start gap-3">
+                        <HelpCircle className="w-5 h-5 text-primary shrink-0 mt-0.5 group-hover:scale-110 transition-transform" />
+                        <span>{faq.question}</span>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="text-muted-foreground pb-5 pl-8">
+                      {faq.answer}
+                    </AccordionContent>
+                  </AccordionItem>
+                </motion.div>
               ))}
             </Accordion>
           </div>

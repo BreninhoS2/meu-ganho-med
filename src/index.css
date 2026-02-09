@@ -8,7 +8,7 @@
   Mobile-first, clarity-oriented
 */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
 @layer base {
   :root {
@@ -50,7 +50,6 @@
 
     --destructive: 0 70% 55%;
     --destructive-foreground: 0 0% 100%;
-    --destructive-foreground: 0 0% 100%;
 
     --border: 200 20% 88%;
     --input: 200 20% 88%;
@@ -62,6 +61,12 @@
     --shadow-sm: 0 1px 2px 0 hsl(200 25% 15% / 0.04);
     --shadow-md: 0 4px 6px -1px hsl(200 25% 15% / 0.06), 0 2px 4px -2px hsl(200 25% 15% / 0.06);
     --shadow-lg: 0 10px 15px -3px hsl(200 25% 15% / 0.08), 0 4px 6px -4px hsl(200 25% 15% / 0.08);
+    --shadow-xl: 0 20px 25px -5px hsl(200 25% 15% / 0.1), 0 8px 10px -6px hsl(200 25% 15% / 0.1);
+    
+    /* Landing page specific */
+    --gradient-primary: linear-gradient(135deg, hsl(174 62% 38%) 0%, hsl(180 55% 45%) 50%, hsl(174 50% 35%) 100%);
+    --gradient-hero: linear-gradient(180deg, hsl(180 30% 96%) 0%, hsl(180 20% 98%) 100%);
+    --gradient-blob: radial-gradient(circle at center, hsl(174 62% 38% / 0.15) 0%, transparent 70%);
   }
 
   .dark {
@@ -111,6 +116,7 @@
 
   html {
     font-family: 'Inter', system-ui, sans-serif;
+    scroll-behavior: smooth;
   }
 
   body {
@@ -161,6 +167,67 @@
   .badge-24h {
     @apply bg-primary/10 text-primary;
   }
+
+  /* Landing page components */
+  .hero-gradient {
+    background: var(--gradient-hero);
+  }
+
+  .gradient-blob {
+    background: var(--gradient-blob);
+  }
+
+  /* Float animation */
+  @keyframes float {
+    0%, 100% {
+      transform: translateY(0px) rotate(0deg);
+    }
+    50% {
+      transform: translateY(-10px) rotate(2deg);
+    }
+  }
+
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+
+  .animate-float-delayed {
+    animation: float 6s ease-in-out infinite;
+    animation-delay: 2s;
+  }
+
+  .animate-float-slow {
+    animation: float 8s ease-in-out infinite;
+  }
+
+  /* Subtle pulse */
+  @keyframes subtle-pulse {
+    0%, 100% {
+      opacity: 0.4;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.6;
+      transform: scale(1.05);
+    }
+  }
+
+  .animate-subtle-pulse {
+    animation: subtle-pulse 4s ease-in-out infinite;
+  }
+
+  /* Glass effect */
+  .glass {
+    @apply bg-card/80 backdrop-blur-xl border border-border/50;
+  }
+
+  /* Gradient text */
+  .gradient-text {
+    background: linear-gradient(135deg, hsl(174 62% 38%) 0%, hsl(180 55% 50%) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
 }
 
 @layer utilities {
@@ -174,5 +241,15 @@
 
   .bg-money {
     background-color: hsl(var(--money));
+  }
+
+  /* Hide scrollbar but keep functionality */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
   }
 }
