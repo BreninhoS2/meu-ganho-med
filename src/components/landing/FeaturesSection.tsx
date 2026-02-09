@@ -24,6 +24,16 @@ import {
   Shield,
 } from "lucide-react";
 
+// ============ CONFIGURAÇÃO DO SCROLLYTELLING ============
+const CONFIG = {
+  DELTA_THRESHOLD: 320,      // Quantidade de scroll acumulado para trocar card
+  LOCK_MS: 1000,             // Lock após troca (ms)
+  MIN_DWELL_MS: 1200,        // Tempo mínimo no card antes de poder trocar
+  TRANSITION_DURATION: 0.75, // Duração da animação (segundos)
+  TRACKPAD_MULTIPLIER: 0.6,  // Multiplicador para trackpad (delta menor)
+  EXIT_THRESHOLD: 320,       // Threshold extra para sair da seção
+};
+
 const planData = [
   {
     id: "start",
@@ -44,6 +54,7 @@ const planData = [
       "Backup automático na nuvem",
     ],
     floatingIcons: [Calendar, Stethoscope, Cloud, Shield],
+    nextHint: "Role para ver Pro",
   },
   {
     id: "pro",
@@ -63,6 +74,7 @@ const planData = [
       "Exportações CSV e ICS",
     ],
     floatingIcons: [Clock, Receipt, BarChart3, Target],
+    nextHint: "Role para ver Premium",
   },
   {
     id: "premium",
@@ -83,6 +95,7 @@ const planData = [
       "Suporte prioritário dedicado",
     ],
     floatingIcons: [Bell, TrendingUp, FileSpreadsheet, Crown],
+    nextHint: "Continue para ver preços",
   },
 ];
 
@@ -114,7 +127,7 @@ function FloatingIcon({
         opacity: { duration: 3, repeat: Infinity, delay },
         y: { duration: 4, repeat: Infinity, delay, ease: "easeInOut" },
         rotate: { duration: 6, repeat: Infinity, delay },
-        scale: { duration: 0.4, delay: delay * 0.15 },
+        scale: { duration: 0.5, delay: delay * 0.15 },
       }}
     >
       <Icon className="w-6 h-6 lg:w-7 lg:h-7" />
@@ -192,10 +205,10 @@ function IllustrationPanel({ plan, isActive }: { plan: typeof planData[0]; isAct
 // Directional card animation variants
 const getCardVariants = (direction: 'down' | 'up') => ({
   initial: {
-    y: direction === 'down' ? 100 : -100,
+    y: direction === 'down' ? 120 : -120,
     opacity: 0,
-    scale: 0.95,
-    filter: 'blur(4px)',
+    scale: 0.96,
+    filter: 'blur(8px)',
   },
   animate: {
     y: 0,
@@ -204,10 +217,10 @@ const getCardVariants = (direction: 'down' | 'up') => ({
     filter: 'blur(0px)',
   },
   exit: {
-    y: direction === 'down' ? -100 : 100,
+    y: direction === 'down' ? -120 : 120,
     opacity: 0,
-    scale: 0.95,
-    filter: 'blur(4px)',
+    scale: 0.96,
+    filter: 'blur(8px)',
   },
 });
 
@@ -235,9 +248,9 @@ function HeroCard({ plan, direction }: HeroCardProps) {
       animate="animate"
       exit="exit"
       transition={{ 
-        duration: 0.4, 
-        ease: [0.25, 0.1, 0.25, 1],
-        filter: { duration: 0.3 },
+        duration: CONFIG.TRANSITION_DURATION, 
+        ease: [0.4, 0, 0.2, 1],
+        filter: { duration: CONFIG.TRANSITION_DURATION * 0.6 },
       }}
       className="absolute inset-0"
     >
@@ -246,7 +259,6 @@ function HeroCard({ plan, direction }: HeroCardProps) {
           h-full w-full rounded-3xl border-2 ${plan.borderColor}
           bg-gradient-to-br ${plan.bgGradient} bg-card
           shadow-2xl overflow-visible
-          ring-2 ring-offset-2 ring-offset-background ring-transparent
         `}
         style={{
           boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.05)',
@@ -261,7 +273,7 @@ function HeroCard({ plan, direction }: HeroCardProps) {
                 className={`w-14 h-14 rounded-2xl ${plan.badgeBg} flex items-center justify-center shadow-lg`}
                 initial={{ scale: 0.8, rotate: -10 }}
                 animate={{ scale: 1, rotate: 0 }}
-                transition={{ delay: 0.1, duration: 0.3 }}
+                transition={{ delay: 0.2, duration: 0.4, ease: "easeOut" }}
               >
                 <PlanIcon className="w-7 h-7" />
               </motion.div>
@@ -282,7 +294,7 @@ function HeroCard({ plan, direction }: HeroCardProps) {
                   className="flex items-start gap-3"
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.15 + i * 0.05, duration: 0.3 }}
+                  transition={{ delay: 0.3 + i * 0.06, duration: 0.4 }}
                 >
                   <div className={`w-5 h-5 rounded-full ${plan.badgeBg} flex items-center justify-center shrink-0 mt-0.5`}>
                     <Check className="w-3 h-3" />
@@ -296,7 +308,7 @@ function HeroCard({ plan, direction }: HeroCardProps) {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4, duration: 0.3 }}
+              transition={{ delay: 0.6, duration: 0.4 }}
             >
               <Button 
                 onClick={scrollToSection}
@@ -319,38 +331,92 @@ function HeroCard({ plan, direction }: HeroCardProps) {
   );
 }
 
-function ProgressDots({ activeIndex }: { activeIndex: number }) {
+// Progress indicator with scroll feedback
+function ProgressIndicator({ 
+  activeIndex, 
+  scrollProgress,
+  isLocked,
+  direction,
+}: { 
+  activeIndex: number; 
+  scrollProgress: number;
+  isLocked: boolean;
+  direction: 'down' | 'up';
+}) {
+  const progressPercent = Math.min(100, Math.abs(scrollProgress) / CONFIG.DELTA_THRESHOLD * 100);
+  const showProgress = progressPercent > 5 && !isLocked;
+
   return (
-    <div className="flex items-center justify-center gap-3">
-      {planData.map((plan, index) => {
-        const isActive = index === activeIndex;
-        const PlanIcon = plan.icon;
-        
-        return (
+    <div className="flex flex-col items-center gap-3">
+      {/* Dots */}
+      <div className="flex items-center justify-center gap-3">
+        {planData.map((plan, index) => {
+          const isActive = index === activeIndex;
+          const PlanIcon = plan.icon;
+          
+          return (
+            <motion.div
+              key={plan.id}
+              animate={{ 
+                scale: isActive ? 1.1 : 1,
+                opacity: isActive ? 1 : 0.5,
+              }}
+              transition={{ duration: 0.3 }}
+              className={`
+                flex items-center gap-2 px-4 py-2 rounded-full transition-colors duration-300
+                ${isActive ? `${plan.badgeBg} shadow-lg` : 'bg-muted/50 text-muted-foreground'}
+              `}
+            >
+              <PlanIcon className="w-4 h-4" />
+              <span className="text-sm font-medium">{plan.name}</span>
+              {isActive && (
+                <motion.div
+                  layoutId="activeDot"
+                  className="w-2 h-2 rounded-full bg-current"
+                  transition={{ duration: 0.3 }}
+                />
+              )}
+            </motion.div>
+          );
+        })}
+      </div>
+
+      {/* Scroll progress bar */}
+      <AnimatePresence>
+        {showProgress && (
           <motion.div
-            key={plan.id}
-            animate={{ 
-              scale: isActive ? 1.1 : 1,
-              opacity: isActive ? 1 : 0.5,
-            }}
-            transition={{ duration: 0.2 }}
-            className={`
-              flex items-center gap-2 px-4 py-2 rounded-full transition-colors duration-200
-              ${isActive ? `${plan.badgeBg} shadow-lg` : 'bg-muted/50 text-muted-foreground'}
-            `}
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="flex items-center gap-2 text-xs text-muted-foreground"
           >
-            <PlanIcon className="w-4 h-4" />
-            <span className="text-sm font-medium">{plan.name}</span>
-            {isActive && (
-              <motion.div
-                layoutId="activeDot"
-                className="w-2 h-2 rounded-full bg-current"
-                transition={{ duration: 0.2 }}
+            <span>{direction === 'down' ? '↓' : '↑'}</span>
+            <div className="w-24 h-1.5 bg-muted rounded-full overflow-hidden">
+              <motion.div 
+                className="h-full bg-primary/60 rounded-full"
+                initial={{ width: 0 }}
+                animate={{ width: `${progressPercent}%` }}
+                transition={{ duration: 0.1 }}
               />
-            )}
+            </div>
+            <span className="w-8 text-right">{Math.round(progressPercent)}%</span>
           </motion.div>
-        );
-      })}
+        )}
+      </AnimatePresence>
+
+      {/* Lock indicator */}
+      <AnimatePresence>
+        {isLocked && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="text-xs text-muted-foreground/60"
+          >
+            Aguarde...
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -416,40 +482,55 @@ function MobileCard({ plan }: { plan: typeof planData[0] }) {
 export function FeaturesSection() {
   const isMobile = useIsMobile();
   const sectionRef = useRef<HTMLDivElement>(null);
-  const [activeStep, setActiveStep] = useState(0); // 0 = Start, 1 = Pro, 2 = Premium
+  const [activeStep, setActiveStep] = useState(0);
   const [direction, setDirection] = useState<'down' | 'up'>('down');
   const [isPinned, setIsPinned] = useState(false);
+  const [isLocked, setIsLocked] = useState(false);
+  const [scrollProgress, setScrollProgress] = useState(0);
   
-  // Anti-skip: accumulated delta and cooldown
+  // Refs for scroll control
   const accumulatedDelta = useRef(0);
   const lastChangeTime = useRef(0);
-  const DELTA_THRESHOLD = 100; // Wheel delta needed to trigger a step change
-  const COOLDOWN_MS = 300; // Minimum time between step changes
+  const cardAppearedTime = useRef(Date.now());
+  const exitAccumulator = useRef(0);
 
-  // Step-based navigation with anti-skip
+  // Detect if input is trackpad (smaller, more frequent deltas)
+  const isTrackpad = useRef(false);
+  const lastDeltaTime = useRef(0);
+  const deltaHistory = useRef<number[]>([]);
+
+  const detectTrackpad = useCallback((deltaY: number) => {
+    const now = Date.now();
+    const timeDiff = now - lastDeltaTime.current;
+    lastDeltaTime.current = now;
+
+    deltaHistory.current.push(Math.abs(deltaY));
+    if (deltaHistory.current.length > 5) {
+      deltaHistory.current.shift();
+    }
+
+    // Trackpad: small deltas, high frequency
+    const avgDelta = deltaHistory.current.reduce((a, b) => a + b, 0) / deltaHistory.current.length;
+    isTrackpad.current = avgDelta < 50 && timeDiff < 50;
+  }, []);
+
+  // Change step with all guards
   const changeStep = useCallback((newStep: number, newDirection: 'down' | 'up') => {
     const now = Date.now();
     
-    // Enforce cooldown
-    if (now - lastChangeTime.current < COOLDOWN_MS) {
+    // Check lock
+    if (now - lastChangeTime.current < CONFIG.LOCK_MS) {
+      return false;
+    }
+
+    // Check dwell time
+    if (now - cardAppearedTime.current < CONFIG.MIN_DWELL_MS) {
       return false;
     }
     
-    // Clamp step to valid range
+    // Clamp and validate single step
     const clampedStep = Math.max(0, Math.min(2, newStep));
-    
-    // Only allow 1 step at a time
-    const stepDiff = Math.abs(clampedStep - activeStep);
-    if (stepDiff > 1) {
-      // Force single step
-      const targetStep = activeStep + (newDirection === 'down' ? 1 : -1);
-      if (targetStep >= 0 && targetStep <= 2 && targetStep !== activeStep) {
-        setDirection(newDirection);
-        setActiveStep(targetStep);
-        lastChangeTime.current = now;
-        accumulatedDelta.current = 0;
-        return true;
-      }
+    if (Math.abs(clampedStep - activeStep) !== 1) {
       return false;
     }
     
@@ -457,14 +538,24 @@ export function FeaturesSection() {
       setDirection(newDirection);
       setActiveStep(clampedStep);
       lastChangeTime.current = now;
+      cardAppearedTime.current = now;
       accumulatedDelta.current = 0;
+      exitAccumulator.current = 0;
+      setScrollProgress(0);
+      setIsLocked(true);
+      
+      // Unlock after lock duration
+      setTimeout(() => {
+        setIsLocked(false);
+      }, CONFIG.LOCK_MS);
+      
       return true;
     }
     
     return false;
   }, [activeStep]);
 
-  // Handle wheel events for pinned scrolling
+  // Handle wheel events
   const handleWheel = useCallback((e: WheelEvent) => {
     if (!sectionRef.current) return;
 
@@ -473,7 +564,7 @@ export function FeaturesSection() {
     const viewportHeight = window.innerHeight;
     const headerHeight = 80;
 
-    // Check if section is in view for pinning
+    // Check if section is in view
     const sectionTop = rect.top;
     const sectionBottom = rect.bottom;
     const isInView = sectionTop <= headerHeight + 100 && sectionBottom >= viewportHeight - 100;
@@ -481,58 +572,91 @@ export function FeaturesSection() {
     if (!isInView) {
       setIsPinned(false);
       accumulatedDelta.current = 0;
+      exitAccumulator.current = 0;
+      setScrollProgress(0);
       return;
     }
 
-    const delta = e.deltaY;
+    // Detect input type
+    detectTrackpad(e.deltaY);
+
+    const rawDelta = e.deltaY;
+    const delta = isTrackpad.current ? rawDelta * CONFIG.TRACKPAD_MULTIPLIER : rawDelta;
     const scrollingDown = delta > 0;
     const scrollingUp = delta < 0;
 
-    // Check exit conditions
+    // Handle exit conditions with extra threshold
     if (scrollingUp && activeStep === 0) {
-      // At Start and scrolling up - allow exit
-      setIsPinned(false);
-      accumulatedDelta.current = 0;
+      exitAccumulator.current += Math.abs(delta);
+      if (exitAccumulator.current >= CONFIG.EXIT_THRESHOLD) {
+        setIsPinned(false);
+        accumulatedDelta.current = 0;
+        exitAccumulator.current = 0;
+        setScrollProgress(0);
+        return;
+      }
+      e.preventDefault();
+      setIsPinned(true);
       return;
     }
     
     if (scrollingDown && activeStep === 2) {
-      // At Premium and scrolling down - allow exit
-      setIsPinned(false);
-      accumulatedDelta.current = 0;
+      exitAccumulator.current += Math.abs(delta);
+      if (exitAccumulator.current >= CONFIG.EXIT_THRESHOLD) {
+        setIsPinned(false);
+        accumulatedDelta.current = 0;
+        exitAccumulator.current = 0;
+        setScrollProgress(0);
+        return;
+      }
+      e.preventDefault();
+      setIsPinned(true);
       return;
     }
 
-    // We're in pinned mode - prevent page scroll
+    // Reset exit accumulator if direction changes
+    exitAccumulator.current = 0;
+
+    // Prevent page scroll
     e.preventDefault();
     setIsPinned(true);
 
-    // Accumulate delta
-    accumulatedDelta.current += delta;
-
-    // Check if threshold reached for step change
-    if (Math.abs(accumulatedDelta.current) >= DELTA_THRESHOLD) {
-      const newDirection = accumulatedDelta.current > 0 ? 'down' : 'up';
-      const newStep = activeStep + (newDirection === 'down' ? 1 : -1);
-      changeStep(newStep, newDirection);
+    // If locked, ignore accumulation
+    if (isLocked) {
+      return;
     }
-  }, [activeStep, changeStep]);
+
+    // Accumulate delta in current direction
+    const currentDirection = delta > 0 ? 'down' : 'up';
+    const prevDirection = accumulatedDelta.current > 0 ? 'down' : accumulatedDelta.current < 0 ? 'up' : currentDirection;
+
+    // Reset if direction changes
+    if (currentDirection !== prevDirection && accumulatedDelta.current !== 0) {
+      accumulatedDelta.current = 0;
+    }
+
+    accumulatedDelta.current += delta;
+    setScrollProgress(accumulatedDelta.current);
+    setDirection(currentDirection);
+
+    // Check threshold
+    if (Math.abs(accumulatedDelta.current) >= CONFIG.DELTA_THRESHOLD) {
+      const newStep = activeStep + (currentDirection === 'down' ? 1 : -1);
+      changeStep(newStep, currentDirection);
+    }
+  }, [activeStep, changeStep, detectTrackpad, isLocked]);
 
   // Handle keyboard navigation
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    if (!isPinned && !sectionRef.current) return;
+    if (!sectionRef.current) return;
 
     const section = sectionRef.current;
-    if (!section) return;
-
     const rect = section.getBoundingClientRect();
     const viewportHeight = window.innerHeight;
     const headerHeight = 80;
     const isInView = rect.top <= headerHeight + 100 && rect.bottom >= viewportHeight - 100;
 
-    if (!isInView) return;
-
-    let handled = false;
+    if (!isInView || isLocked) return;
 
     switch (e.key) {
       case 'ArrowDown':
@@ -540,7 +664,6 @@ export function FeaturesSection() {
         if (activeStep < 2) {
           e.preventDefault();
           changeStep(activeStep + 1, 'down');
-          handled = true;
         }
         break;
       case 'ArrowUp':
@@ -548,72 +671,10 @@ export function FeaturesSection() {
         if (activeStep > 0) {
           e.preventDefault();
           changeStep(activeStep - 1, 'up');
-          handled = true;
         }
         break;
     }
-
-    if (handled) {
-      setIsPinned(true);
-    }
-  }, [activeStep, changeStep, isPinned]);
-
-  // Touch handling for mobile trackpads
-  const touchStartY = useRef(0);
-  const touchAccumulated = useRef(0);
-
-  const handleTouchStart = useCallback((e: TouchEvent) => {
-    touchStartY.current = e.touches[0].clientY;
-    touchAccumulated.current = 0;
-  }, []);
-
-  const handleTouchMove = useCallback((e: TouchEvent) => {
-    if (!sectionRef.current) return;
-
-    const section = sectionRef.current;
-    const rect = section.getBoundingClientRect();
-    const viewportHeight = window.innerHeight;
-    const headerHeight = 80;
-
-    const isInView = rect.top <= headerHeight + 100 && rect.bottom >= viewportHeight - 100;
-    if (!isInView) {
-      setIsPinned(false);
-      return;
-    }
-
-    const touchY = e.touches[0].clientY;
-    const delta = touchStartY.current - touchY;
-    touchStartY.current = touchY;
-
-    const scrollingDown = delta > 0;
-    const scrollingUp = delta < 0;
-
-    // Check exit conditions
-    if (scrollingUp && activeStep === 0) {
-      setIsPinned(false);
-      return;
-    }
-    
-    if (scrollingDown && activeStep === 2) {
-      setIsPinned(false);
-      return;
-    }
-
-    e.preventDefault();
-    setIsPinned(true);
-
-    // Accumulate touch delta
-    touchAccumulated.current += delta;
-
-    const TOUCH_THRESHOLD = 60;
-    if (Math.abs(touchAccumulated.current) >= TOUCH_THRESHOLD) {
-      const newDirection = touchAccumulated.current > 0 ? 'down' : 'up';
-      const newStep = activeStep + (newDirection === 'down' ? 1 : -1);
-      if (changeStep(newStep, newDirection)) {
-        touchAccumulated.current = 0;
-      }
-    }
-  }, [activeStep, changeStep]);
+  }, [activeStep, changeStep, isLocked]);
 
   // Setup event listeners
   useEffect(() => {
@@ -627,20 +688,6 @@ export function FeaturesSection() {
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, [handleWheel, handleKeyDown, isMobile]);
-
-  // Touch events
-  useEffect(() => {
-    const section = sectionRef.current;
-    if (!section || isMobile) return;
-
-    section.addEventListener('touchstart', handleTouchStart, { passive: true });
-    section.addEventListener('touchmove', handleTouchMove, { passive: false });
-
-    return () => {
-      section.removeEventListener('touchstart', handleTouchStart);
-      section.removeEventListener('touchmove', handleTouchMove);
-    };
-  }, [handleTouchStart, handleTouchMove, isMobile]);
 
   // Mobile version
   if (isMobile) {
@@ -671,7 +718,7 @@ export function FeaturesSection() {
     );
   }
 
-  // Desktop version with true pinned scrollytelling
+  // Desktop version with premium scrollytelling
   return (
     <section 
       id="recursos" 
@@ -699,17 +746,22 @@ export function FeaturesSection() {
             </p>
           </div>
 
-          {/* Progress dots */}
+          {/* Progress indicator */}
           <div className="mb-4 shrink-0">
-            <ProgressDots activeIndex={activeStep} />
+            <ProgressIndicator 
+              activeIndex={activeStep} 
+              scrollProgress={scrollProgress}
+              isLocked={isLocked}
+              direction={direction}
+            />
           </div>
 
-          {/* Cards container - hero size with AnimatePresence */}
+          {/* Cards container */}
           <div 
             className="relative flex-1 w-full mx-auto overflow-visible"
             style={{ 
               maxWidth: 'min(980px, 92vw)',
-              minHeight: 'min(580px, calc(100vh - 280px))',
+              minHeight: 'min(580px, calc(100vh - 300px))',
             }}
           >
             <AnimatePresence mode="wait" initial={false}>
@@ -724,13 +776,11 @@ export function FeaturesSection() {
           {/* Scroll hint */}
           <motion.div 
             className="text-center mt-4 shrink-0"
-            animate={{ opacity: [0.5, 1, 0.5] }}
-            transition={{ duration: 2, repeat: Infinity }}
+            animate={{ opacity: isLocked ? 0.3 : [0.5, 1, 0.5] }}
+            transition={{ duration: 2, repeat: isLocked ? 0 : Infinity }}
           >
             <p className="text-xs text-muted-foreground">
-              {activeStep === 0 && '↓ Role para ver Pro'}
-              {activeStep === 1 && '↑↓ Role para Start ou Premium'}
-              {activeStep === 2 && '↓ Continue para ver preços'}
+              {planData[activeStep].nextHint}
             </p>
             <p className="text-xs text-muted-foreground/60 mt-1">
               Use ↑↓ ou scroll • {activeStep + 1} de 3
