@@ -1,15 +1,9 @@
 import { useNavigate } from 'react-router-dom';
+import { memo } from 'react';
 import { motion } from 'framer-motion';
 import { 
-  Receipt,
-  Wallet,
-  Target,
-  BarChart3,
-  Download,
-  ArrowRight,
-  Crown,
-  TrendingUp,
-  Clock
+  Receipt, Wallet, Target, BarChart3, Download, ArrowRight, Crown,
+  TrendingUp, Clock, Calendar, CalendarDays, Building2, LayoutDashboard
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -55,18 +49,40 @@ const proFeatureCards = [
   },
 ];
 
+const startShortcuts = [
+  { title: 'Agenda', icon: Calendar, path: '/agenda', color: 'bg-teal-500/10 text-teal-600' },
+  { title: 'Calendário', icon: CalendarDays, path: '/calendario', color: 'bg-indigo-500/10 text-indigo-600' },
+  { title: 'Locais', icon: Building2, path: '/locais', color: 'bg-violet-500/10 text-violet-600' },
+  { title: 'Dashboard', icon: LayoutDashboard, path: '/dashboard', color: 'bg-sky-500/10 text-sky-600' },
+];
+
 const container = {
   hidden: { opacity: 0 },
-  show: {
-    opacity: 1,
-    transition: { staggerChildren: 0.1 },
-  },
+  show: { opacity: 1, transition: { staggerChildren: 0.1 } },
 };
-
 const item = {
   hidden: { opacity: 0, y: 20 },
   show: { opacity: 1, y: 0 },
 };
+
+const ShortcutCard = memo(function ShortcutCard({ title, icon: Icon, path, color, onClick }: {
+  title: string; icon: React.ElementType; path: string; color: string; onClick: (p: string) => void;
+}) {
+  return (
+    <Card
+      className="cursor-pointer hover:shadow-md transition-all hover:border-primary/50 group"
+      onClick={() => onClick(path)}
+    >
+      <CardContent className="pt-4 pb-4 flex items-center gap-3">
+        <div className={`w-9 h-9 rounded-lg ${color} flex items-center justify-center flex-shrink-0`}>
+          <Icon className="w-4 h-4" />
+        </div>
+        <span className="text-sm font-medium text-foreground">{title}</span>
+        <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors ml-auto" />
+      </CardContent>
+    </Card>
+  );
+});
 
 export default function ProHome() {
   const navigate = useNavigate();
@@ -83,20 +99,13 @@ export default function ProHome() {
             <h1 className="text-2xl font-bold text-foreground">
               Olá, {userName}! 👋
             </h1>
-            <p className="text-muted-foreground">
-              Seu controle financeiro
-            </p>
+            <p className="text-muted-foreground">Seu controle financeiro</p>
           </div>
-          <Badge className="bg-primary text-primary-foreground">
-            Plano Pro
-          </Badge>
+          <Badge className="bg-primary text-primary-foreground">Plano Pro</Badge>
         </div>
 
         {/* Financial summary */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-        >
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
           <Card className="bg-gradient-to-r from-primary/5 to-emerald-500/5 border-primary/20">
             <CardContent className="pt-6">
               <div className="grid grid-cols-2 gap-4">
@@ -126,16 +135,11 @@ export default function ProHome() {
           </Card>
         </motion.div>
 
-        {/* Feature cards */}
-        <motion.div
-          variants={container}
-          initial="hidden"
-          animate="show"
-          className="grid gap-4 sm:grid-cols-2"
-        >
+        {/* Pro feature cards */}
+        <motion.div variants={container} initial="hidden" animate="show" className="grid gap-4 sm:grid-cols-2">
           {proFeatureCards.map((card) => (
             <motion.div key={card.path} variants={item}>
-              <Card 
+              <Card
                 className="cursor-pointer hover:shadow-md transition-all hover:border-primary/50 group"
                 onClick={() => navigate(card.path)}
               >
@@ -149,9 +153,7 @@ export default function ProHome() {
                 </CardHeader>
                 <CardContent>
                   <CardTitle className="text-base">{card.title}</CardTitle>
-                  <CardDescription className="text-sm mt-1">
-                    {card.description}
-                  </CardDescription>
+                  <CardDescription className="text-sm mt-1">{card.description}</CardDescription>
                   {card.stat && (
                     <div className="mt-2 pt-2 border-t border-border/50">
                       <p className="text-lg font-semibold text-foreground">{card.stat}</p>
@@ -164,12 +166,20 @@ export default function ProHome() {
           ))}
         </motion.div>
 
+        {/* Start feature shortcuts */}
+        <div>
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+            Acesso rápido
+          </h2>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {startShortcuts.map((s) => (
+              <ShortcutCard key={s.path} {...s} onClick={navigate} />
+            ))}
+          </div>
+        </div>
+
         {/* Export actions */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-        >
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-base flex items-center gap-2">
@@ -179,31 +189,15 @@ export default function ProHome() {
             </CardHeader>
             <CardContent>
               <div className="flex gap-2">
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => navigate('/export')}
-                >
-                  CSV
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => navigate('/export')}
-                >
-                  ICS (Calendário)
-                </Button>
+                <Button variant="outline" size="sm" onClick={() => navigate('/export')}>CSV</Button>
+                <Button variant="outline" size="sm" onClick={() => navigate('/export')}>ICS (Calendário)</Button>
               </div>
             </CardContent>
           </Card>
         </motion.div>
 
         {/* Upgrade CTA */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-        >
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}>
           <Card className="bg-gradient-to-r from-amber-500/5 to-orange-500/5 border-amber-500/20">
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
@@ -211,14 +205,10 @@ export default function ProHome() {
                   <Crown className="w-6 h-6 text-amber-600" />
                 </div>
                 <div className="flex-1">
-                  <h3 className="font-semibold text-foreground">
-                    Alertas e Insights avançados
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    Faça upgrade para Premium e tenha automação completa
-                  </p>
+                  <h3 className="font-semibold text-foreground">Alertas e Insights avançados</h3>
+                  <p className="text-sm text-muted-foreground">Faça upgrade para Premium e tenha automação completa</p>
                 </div>
-                <Button 
+                <Button
                   onClick={() => navigate('/subscribe?plan=premium')}
                   variant="outline"
                   className="hidden sm:flex border-amber-500/50 text-amber-600 hover:bg-amber-500/10"
@@ -226,7 +216,7 @@ export default function ProHome() {
                   Ver planos
                 </Button>
               </div>
-              <Button 
+              <Button
                 onClick={() => navigate('/subscribe?plan=premium')}
                 variant="outline"
                 className="w-full mt-4 sm:hidden border-amber-500/50 text-amber-600 hover:bg-amber-500/10"
