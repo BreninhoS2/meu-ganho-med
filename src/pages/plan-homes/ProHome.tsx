@@ -1,9 +1,10 @@
 import { useNavigate } from 'react-router-dom';
-import { memo, useMemo } from 'react';
+import { memo, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { 
+import {
   Receipt, Wallet, Target, BarChart3, Download, ArrowRight, Crown,
-  TrendingUp, Clock, Calendar, CalendarDays, Building2, LayoutDashboard
+  TrendingUp, Clock, Calendar, CalendarDays, Building2, LayoutDashboard,
+  ChevronUp, ChevronDown, Settings2, Check
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -14,15 +15,21 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useDbEvents } from '@/hooks/useDbEvents';
 import { useDbExpenses } from '@/hooks/useDbExpenses';
 import { useDbGoals } from '@/hooks/useDbGoals';
+import { useUserShortcuts } from '@/hooks/useUserShortcuts';
 import { formatCurrency } from '@/lib/formatters';
 import { Loader2 } from 'lucide-react';
 
-const startShortcuts = [
-  { title: 'Agenda', icon: Calendar, path: '/agenda', color: 'bg-teal-500/10 text-teal-600' },
-  { title: 'Calendário', icon: CalendarDays, path: '/calendario', color: 'bg-indigo-500/10 text-indigo-600' },
-  { title: 'Locais', icon: Building2, path: '/locais', color: 'bg-violet-500/10 text-violet-600' },
-  { title: 'Dashboard', icon: LayoutDashboard, path: '/dashboard', color: 'bg-sky-500/10 text-sky-600' },
-];
+const allShortcuts: Record<string, { title: string; icon: React.ElementType; color: string }> = {
+  '/agenda': { title: 'Agenda', icon: Calendar, color: 'bg-teal-500/10 text-teal-600' },
+  '/calendario': { title: 'Calendário', icon: CalendarDays, color: 'bg-indigo-500/10 text-indigo-600' },
+  '/locais': { title: 'Locais', icon: Building2, color: 'bg-violet-500/10 text-violet-600' },
+  '/dashboard': { title: 'Dashboard', icon: LayoutDashboard, color: 'bg-sky-500/10 text-sky-600' },
+  '/pagamentos': { title: 'Pagamentos', icon: Receipt, color: 'bg-orange-500/10 text-orange-600' },
+  '/recebimentos': { title: 'Recebimentos', icon: Receipt, color: 'bg-green-500/10 text-green-600' },
+  '/despesas': { title: 'Despesas', icon: Wallet, color: 'bg-red-500/10 text-red-600' },
+  '/metas': { title: 'Metas', icon: Target, color: 'bg-amber-500/10 text-amber-600' },
+  '/relatorios': { title: 'Relatórios', icon: BarChart3, color: 'bg-blue-500/10 text-blue-600' },
+};
 
 const container = {
   hidden: { opacity: 0 },
@@ -56,36 +63,29 @@ export default function ProHome() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { currentMonthEvents, pendingPayments, isLoading: eventsLoading } = useDbEvents();
-  const { totalCurrentMonthExpenses, currentMonthExpenses, isLoading: expensesLoading } = useDbExpenses();
+  const { totalCurrentMonthExpenses, isLoading: expensesLoading } = useDbExpenses();
   const { currentMonthGoal, isLoading: goalsLoading } = useDbGoals();
+  const { order, moveUp, moveDown, isLoading: shortcutsLoading } = useUserShortcuts();
+  const [editingShortcuts, setEditingShortcuts] = useState(false);
 
   const userName = user?.user_metadata?.name || user?.email?.split('@')[0] || 'Usuário';
 
-  // Real "Recebido este mês" - sum of events with paid_at in current month
   const receivedThisMonth = useMemo(() => {
-    const now = new Date();
-    const month = now.getMonth();
-    const year = now.getFullYear();
     return currentMonthEvents
-      .filter(e => e.paidAt) 
+      .filter(e => e.paidAt)
       .reduce((sum, e) => sum + e.netValue, 0);
   }, [currentMonthEvents]);
 
-  // Real "A receber" - pending payments net value
   const toReceive = useMemo(() => {
     return pendingPayments.reduce((sum, e) => sum + e.netValue, 0);
   }, [pendingPayments]);
 
-  // Goal progress
   const goalAmount = currentMonthGoal?.targetAmount || 0;
   const goalProgress = goalAmount > 0 ? Math.min(Math.round((receivedThisMonth / goalAmount) * 100), 100) : 0;
-
-  // Metas progress for the card
   const metasStat = goalAmount > 0 ? `${goalProgress}%` : '—';
 
-  const isLoading = eventsLoading || expensesLoading || goalsLoading;
+  const isLoading = eventsLoading || expensesLoading || goalsLoading || shortcutsLoading;
 
-  // Receivables next 7 days
   const next7DaysTotal = useMemo(() => {
     const now = new Date();
     return pendingPayments
@@ -99,40 +99,32 @@ export default function ProHome() {
 
   const proFeatureCards = [
     {
-      title: 'Recebimentos',
-      description: 'Próximos 7 e 30 dias',
-      icon: Receipt,
-      path: '/recebimentos',
-      color: 'bg-green-500/10 text-green-600',
-      stat: formatCurrency(next7DaysTotal),
-      statLabel: 'Próx. 7 dias',
+      title: 'Recebimentos', description: 'Próximos 7 e 30 dias', icon: Receipt,
+      path: '/recebimentos', color: 'bg-green-500/10 text-green-600',
+      stat: formatCurrency(next7DaysTotal), statLabel: 'Próx. 7 dias',
     },
     {
-      title: 'Despesas',
-      description: 'Controle por categoria',
-      icon: Wallet,
-      path: '/despesas',
-      color: 'bg-red-500/10 text-red-600',
-      stat: formatCurrency(totalCurrentMonthExpenses),
-      statLabel: `Este mês`,
+      title: 'Despesas', description: 'Controle por categoria', icon: Wallet,
+      path: '/despesas', color: 'bg-red-500/10 text-red-600',
+      stat: formatCurrency(totalCurrentMonthExpenses), statLabel: 'Este mês',
     },
     {
-      title: 'Metas',
-      description: 'Progresso mensal',
-      icon: Target,
-      path: '/metas',
-      color: 'bg-amber-500/10 text-amber-600',
-      stat: metasStat,
-      statLabel: 'Atingido',
+      title: 'Metas', description: 'Progresso mensal', icon: Target,
+      path: '/metas', color: 'bg-amber-500/10 text-amber-600',
+      stat: metasStat, statLabel: 'Atingido',
     },
     {
-      title: 'Relatórios',
-      description: 'Por local e ranking',
-      icon: BarChart3,
-      path: '/relatorios',
-      color: 'bg-blue-500/10 text-blue-600',
+      title: 'Relatórios', description: 'Por local e ranking', icon: BarChart3,
+      path: '/relatorios', color: 'bg-blue-500/10 text-blue-600',
     },
   ];
+
+  // Build ordered shortcuts from user preferences
+  const orderedShortcuts = useMemo(() => {
+    return order
+      .filter(path => allShortcuts[path])
+      .map(path => ({ path, ...allShortcuts[path] }));
+  }, [order]);
 
   if (isLoading) {
     return (
@@ -147,12 +139,10 @@ export default function ProHome() {
   return (
     <AppLayout title="Início">
       <div className="space-y-6">
-        {/* Header with plan badge */}
+        {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">
-              Olá, {userName}! 👋
-            </h1>
+            <h1 className="text-2xl font-bold text-foreground">Olá, {userName}! 👋</h1>
             <p className="text-muted-foreground">Seu controle financeiro</p>
           </div>
           <Badge className="bg-primary text-primary-foreground">Plano Pro</Badge>
@@ -165,15 +155,13 @@ export default function ProHome() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm text-muted-foreground flex items-center gap-1">
-                    <TrendingUp className="w-4 h-4" />
-                    Recebido este mês
+                    <TrendingUp className="w-4 h-4" /> Recebido este mês
                   </p>
                   <p className="text-2xl font-bold text-primary">{formatCurrency(receivedThisMonth)}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground flex items-center gap-1">
-                    <Clock className="w-4 h-4" />
-                    A receber
+                    <Clock className="w-4 h-4" /> A receber
                   </p>
                   <p className="text-2xl font-bold text-foreground">{formatCurrency(toReceive)}</p>
                 </div>
@@ -222,25 +210,71 @@ export default function ProHome() {
           ))}
         </motion.div>
 
-        {/* Start feature shortcuts */}
+        {/* Shortcuts */}
         <div>
-          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-            Acesso rápido
-          </h2>
-          <div className="grid gap-2 sm:grid-cols-2">
-            {startShortcuts.map((s) => (
-              <ShortcutCard key={s.path} {...s} onClick={navigate} />
-            ))}
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+              Acesso rápido
+            </h2>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-xs gap-1.5 text-muted-foreground"
+              onClick={() => setEditingShortcuts(!editingShortcuts)}
+            >
+              {editingShortcuts ? (
+                <><Check className="w-3.5 h-3.5" /> Concluído</>
+              ) : (
+                <><Settings2 className="w-3.5 h-3.5" /> Personalizar</>
+              )}
+            </Button>
           </div>
+
+          {editingShortcuts ? (
+            <div className="space-y-2">
+              {orderedShortcuts.map((s, i) => {
+                const Icon = s.icon;
+                return (
+                  <div key={s.path} className="flex items-center gap-2 bg-card border rounded-lg px-4 py-3">
+                    <div className={`w-8 h-8 rounded-lg ${s.color} flex items-center justify-center flex-shrink-0`}>
+                      <Icon className="w-4 h-4" />
+                    </div>
+                    <span className="text-sm font-medium flex-1">{s.title}</span>
+                    <div className="flex flex-col gap-0.5">
+                      <button
+                        onClick={() => moveUp(i)}
+                        disabled={i === 0}
+                        className="p-0.5 rounded hover:bg-muted disabled:opacity-30 transition-colors"
+                      >
+                        <ChevronUp className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => moveDown(i)}
+                        disabled={i === orderedShortcuts.length - 1}
+                        className="p-0.5 rounded hover:bg-muted disabled:opacity-30 transition-colors"
+                      >
+                        <ChevronDown className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="grid gap-2 sm:grid-cols-2">
+              {orderedShortcuts.map((s) => (
+                <ShortcutCard key={s.path} {...s} onClick={navigate} />
+              ))}
+            </div>
+          )}
         </div>
 
-        {/* Export actions */}
+        {/* Export */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-base flex items-center gap-2">
-                <Download className="w-4 h-4" />
-                Exportar dados
+                <Download className="w-4 h-4" /> Exportar dados
               </CardTitle>
             </CardHeader>
             <CardContent>
