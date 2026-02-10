@@ -46,6 +46,7 @@ const proFixedItems: NavItemDef[] = [
   { to: '/metas', icon: Target, label: 'Metas' },
 ];
 const proMenuItems: NavItemDef[] = [
+  { to: '/recebimentos', icon: Receipt, label: 'Recebimentos' },
   { to: '/agenda', icon: Calendar, label: 'Agenda' },
   { to: '/calendario', icon: CalendarDays, label: 'Calendário' },
   { to: '/locais', icon: Building2, label: 'Locais' },

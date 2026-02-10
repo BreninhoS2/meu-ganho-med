@@ -95,15 +95,9 @@ export default function ExpensesPage() {
     <AppLayout title="Despesas">
       <div className="space-y-4">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-bold text-foreground">Despesas</h1>
-            <p className="text-sm text-muted-foreground">Controle por categoria</p>
-          </div>
-          <Button onClick={() => setShowForm(true)}>
-            <Plus className="w-4 h-4 mr-2" />
-            Nova despesa
-          </Button>
+        <div>
+          <h1 className="text-xl font-bold text-foreground">Despesas</h1>
+          <p className="text-sm text-muted-foreground">Controle por categoria</p>
         </div>
 
         {/* Total card */}
