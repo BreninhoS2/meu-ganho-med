@@ -24,8 +24,7 @@ interface ReportsTabProps {
   locationMap: Map<string, string>;
   getMonthlySummary: (month: number, year: number) => MonthlySummary;
   currentGoal?: number;
-  setGoal: (month: number, year: number, amount: number) => void | Promise<any>;
-  calculateProgress: (current: number, month?: number, year?: number) => { percentage: number; remaining: number; target: number; achieved: boolean };
+  setGoal: (amount: number) => void | Promise<any>;
 }
 
 export function ReportsTab({ 
@@ -35,7 +34,6 @@ export function ReportsTab({
   getMonthlySummary, 
   currentGoal, 
   setGoal,
-  calculateProgress 
 }: ReportsTabProps) {
   const [editingGoal, setEditingGoal] = useState(false);
   const [goalValue, setGoalValue] = useState(currentGoal?.toString() || '');
@@ -68,12 +66,17 @@ export function ReportsTab({
 
   // Current month summary
   const currentSummary = getMonthlySummary(currentMonth, currentYear);
-  const goalProgress = currentGoal ? calculateProgress(currentSummary.totalNet, currentMonth, currentYear) : null;
+  const goalProgress = currentGoal && currentGoal > 0 ? {
+    percentage: Math.min(100, Math.round((currentSummary.totalNet / currentGoal) * 100)),
+    remaining: Math.max(0, currentGoal - currentSummary.totalNet),
+    target: currentGoal,
+    achieved: currentSummary.totalNet >= currentGoal,
+  } : null;
 
   const handleSaveGoal = () => {
     const amount = parseFloat(goalValue);
     if (amount > 0) {
-      setGoal(currentMonth, currentYear, amount);
+      setGoal(amount);
     }
     setEditingGoal(false);
   };

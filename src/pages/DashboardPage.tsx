@@ -65,8 +65,7 @@ export default function DashboardPage() {
   const handleSaveGoal = async () => {
     const value = parseFloat(goalValue.replace(',', '.'));
     if (isNaN(value) || value <= 0) return;
-    const now = new Date();
-    await setGoal(now.getMonth(), now.getFullYear(), value);
+    await setGoal(value);
     setShowGoalModal(false);
     setGoalValue('');
   };

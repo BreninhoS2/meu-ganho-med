@@ -153,7 +153,10 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          is_suggestion_applied: boolean | null
+          last_manual_edit_at: string | null
           month: number
+          notes: string | null
           target_amount: number
           updated_at: string
           user_id: string
@@ -162,7 +165,10 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          is_suggestion_applied?: boolean | null
+          last_manual_edit_at?: string | null
           month: number
+          notes?: string | null
           target_amount: number
           updated_at?: string
           user_id: string
@@ -171,7 +177,10 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          is_suggestion_applied?: boolean | null
+          last_manual_edit_at?: string | null
           month?: number
+          notes?: string | null
           target_amount?: number
           updated_at?: string
           user_id?: string

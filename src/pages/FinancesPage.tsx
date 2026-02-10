@@ -33,7 +33,7 @@ export default function FinancesPage() {
     removeExpense 
   } = useDbExpenses();
   const { locations, locationMap, isLoading: locationsLoading, getLocationDefaults } = useDbLocations();
-  const { currentMonthGoal, setGoal, calculateProgress, isLoading: goalsLoading } = useDbGoals();
+  const { currentMonthGoal, setGoal, isLoading: goalsLoading } = useDbGoals();
 
   const handleEditEvent = (event: MedicalEventWithCalculations) => {
     setEditingEvent(event);
@@ -115,7 +115,6 @@ export default function FinancesPage() {
               getMonthlySummary={getMonthlySummary}
               currentGoal={currentMonthGoal?.targetAmount}
               setGoal={setGoal}
-              calculateProgress={calculateProgress}
             />
           ) : (
             <LockedTabContent featureName="Relatórios por local" requiredPlan="Pro" />
