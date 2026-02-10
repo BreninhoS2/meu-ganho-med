@@ -290,6 +290,30 @@ export type Database = {
         }
         Relationships: []
       }
+      user_nav_prefs: {
+        Row: {
+          created_at: string
+          id: string
+          updated_at: string
+          user_id: string
+          visible_items: Json
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+          visible_items?: Json
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+          visible_items?: Json
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
