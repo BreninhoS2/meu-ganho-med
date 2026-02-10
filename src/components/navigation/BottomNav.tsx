@@ -97,21 +97,31 @@ const MenuItemLink = memo(function MenuItemLink({ to, icon: Icon, label, onClick
   );
 });
 
+// Sections for the Pro/Premium menu
+const PRO_MENU_SECTION = ['/recebimentos', '/despesas', '/metas', '/relatorios'];
+const START_MENU_SECTION = ['/calendario'];
+const SYSTEM_MENU_SECTION = ['/config'];
+
+function toNavItem(path: string): NavItemDef | null {
+  const meta = NAV_META[path];
+  if (!meta) return null;
+  return { to: path, icon: meta.icon, label: meta.label };
+}
+
 export function BottomNav() {
   const isMobile = useIsMobile();
   const [menuOpen, setMenuOpen] = useState(false);
   const [prefsOpen, setPrefsOpen] = useState(false);
   const { subscription } = useAuth();
   const plan = subscription.plan;
-  const isAdvancedPlan = plan === 'pro' || plan === 'premium';
+  const isAdvancedPlan = plan === 'pro' || plan === 'premium' || subscription.isAdmin;
 
   const navPrefs = useNavPrefs();
 
-  const homePath = getHomePath(plan);
+  const homePath = getHomePath(isAdvancedPlan ? (plan === 'premium' ? 'premium' : 'pro') : plan);
 
   // Build nav items based on plan
   let fixedItems: NavItemDef[];
-  let menuItemsList: NavItemDef[];
 
   if (isAdvancedPlan) {
     // Dynamic bar items from user preferences
@@ -122,13 +132,11 @@ export function BottomNav() {
         .filter(p => NAV_META[p])
         .map(p => ({ to: p, icon: NAV_META[p].icon, label: NAV_META[p].label })),
     ];
-    // Menu overflow items
-    menuItemsList = navPrefs.menuItems
-      .filter(p => NAV_META[p])
-      .map(p => ({ to: p, icon: NAV_META[p].icon, label: NAV_META[p].label }));
   } else {
-    fixedItems = startFixedItems;
-    menuItemsList = startMenuItems;
+    fixedItems = [
+      { to: homePath, icon: Home, label: 'Início' },
+      ...startFixedItems.slice(1), // skip the hardcoded /start
+    ];
   }
 
   const closeMenu = useCallback(() => setMenuOpen(false), []);
@@ -138,25 +146,79 @@ export function BottomNav() {
     setTimeout(() => setPrefsOpen(true), 200);
   }, []);
 
-  const menuContent = (
-    <div className="flex flex-col gap-1">
-      {menuItemsList.map((item) => (
-        <MenuItemLink key={item.to} {...item} onClick={closeMenu} />
-      ))}
-      {isAdvancedPlan && (
-        <>
-          <div className="border-t border-border my-1" />
-          <button
-            onClick={openPrefs}
-            className="flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-foreground hover:bg-muted"
-          >
-            <Settings2 className="w-5 h-5" />
-            <span className="text-sm font-medium">Personalizar barra</span>
-          </button>
-        </>
-      )}
-    </div>
-  );
+  // Build menu content based on plan
+  const buildMenuContent = () => {
+    if (!isAdvancedPlan) {
+      // Start plan: simple menu
+      return (
+        <div className="flex flex-col gap-1">
+          {startMenuItems.map((item) => (
+            <MenuItemLink key={item.to} {...item} onClick={closeMenu} />
+          ))}
+        </div>
+      );
+    }
+
+    // Pro/Premium: organized sections with items NOT in the bar
+    const barPaths = navPrefs.barItems;
+    const isInBar = (path: string) => barPaths.includes(path);
+
+    const proItems = PRO_MENU_SECTION.filter(p => !isInBar(p)).map(toNavItem).filter(Boolean) as NavItemDef[];
+    const startItems = START_MENU_SECTION.filter(p => !isInBar(p)).map(toNavItem).filter(Boolean) as NavItemDef[];
+    const systemItems = SYSTEM_MENU_SECTION.filter(p => !isInBar(p)).map(toNavItem).filter(Boolean) as NavItemDef[];
+    // Also include other overflow items not in any section
+    const knownPaths = [...PRO_MENU_SECTION, ...START_MENU_SECTION, ...SYSTEM_MENU_SECTION];
+    const otherOverflow = navPrefs.menuItems
+      .filter(p => !knownPaths.includes(p) && !isInBar(p))
+      .map(toNavItem)
+      .filter(Boolean) as NavItemDef[];
+
+    return (
+      <div className="flex flex-col gap-1">
+        {proItems.length > 0 && (
+          <>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4 pt-2 pb-1">Pro</p>
+            {proItems.map((item) => (
+              <MenuItemLink key={item.to} {...item} onClick={closeMenu} />
+            ))}
+          </>
+        )}
+        {startItems.length > 0 && (
+          <>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4 pt-2 pb-1">Start</p>
+            {startItems.map((item) => (
+              <MenuItemLink key={item.to} {...item} onClick={closeMenu} />
+            ))}
+          </>
+        )}
+        {otherOverflow.length > 0 && (
+          <>
+            {otherOverflow.map((item) => (
+              <MenuItemLink key={item.to} {...item} onClick={closeMenu} />
+            ))}
+          </>
+        )}
+        {systemItems.length > 0 && (
+          <>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4 pt-2 pb-1">Sistema</p>
+            {systemItems.map((item) => (
+              <MenuItemLink key={item.to} {...item} onClick={closeMenu} />
+            ))}
+          </>
+        )}
+        <div className="border-t border-border my-1" />
+        <button
+          onClick={openPrefs}
+          className="flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-foreground hover:bg-muted"
+        >
+          <Settings2 className="w-5 h-5" />
+          <span className="text-sm font-medium">Editar barra</span>
+        </button>
+      </div>
+    );
+  };
+
+  const menuContent = buildMenuContent();
 
   return (
     <>
@@ -181,7 +243,7 @@ export function BottomNav() {
                   <span className="text-[10px] font-medium leading-tight">Menu</span>
                 </button>
                 <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
-                  <SheetContent side="bottom" className="rounded-t-2xl pb-8">
+                  <SheetContent side="bottom" className="rounded-t-2xl pb-8 max-h-[70vh] overflow-y-auto">
                     <SheetHeader className="pb-2">
                       <SheetTitle>Menu</SheetTitle>
                     </SheetHeader>
@@ -202,7 +264,7 @@ export function BottomNav() {
                     <span className="text-[10px] font-medium leading-tight">Menu</span>
                   </button>
                 </PopoverTrigger>
-                <PopoverContent align="end" side="top" className="w-56 p-2">
+                <PopoverContent align="end" side="top" className="w-56 p-2 max-h-[60vh] overflow-y-auto">
                   {menuContent}
                 </PopoverContent>
               </Popover>
