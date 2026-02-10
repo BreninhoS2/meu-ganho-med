@@ -20,8 +20,8 @@ const ALL_PRO_NAV_ITEMS = [
   '/config',
 ];
 
-const DEFAULT_VISIBLE = ['/pagamentos', '/despesas', '/metas', '/recebimentos'];
-const MAX_VISIBLE = 4; // besides Início and Menu
+const DEFAULT_VISIBLE = ['/pagamentos', '/recebimentos', '/despesas', '/metas', '/agenda'];
+const MAX_VISIBLE = 5; // besides Início and Menu
 
 export function useNavPrefs() {
   const { user, subscription } = useAuth();
