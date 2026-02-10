@@ -82,7 +82,7 @@ export const NavPrefsModal = memo(function NavPrefsModal({
           <SheetTitle>Personalizar barra inferior</SheetTitle>
         </SheetHeader>
         <p className="text-sm text-muted-foreground mb-4">
-          Selecione até {maxVisible} itens para exibir na barra. "Início" é fixo.
+          Selecione até {maxVisible} itens para exibir na barra. "Início" e "Menu" são fixos.
         </p>
 
         {/* Selected items with reorder */}
