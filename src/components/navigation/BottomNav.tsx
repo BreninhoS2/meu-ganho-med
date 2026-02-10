@@ -1,12 +1,13 @@
 import { NavLink } from 'react-router-dom';
 import {
   Home, Calendar, CalendarDays, LayoutDashboard, MoreHorizontal,
-  Building2, Receipt, Settings, Wallet, Target, BarChart3, Download
+  Building2, Receipt, Settings, Wallet, Target, BarChart3, Download, Settings2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useState, memo, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useNavPrefs } from '@/hooks/useNavPrefs';
 import {
   Sheet,
   SheetContent,
@@ -18,6 +19,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
+import { NavPrefsModal } from './NavPrefsModal';
 
 interface NavItemDef {
   to: string;
@@ -25,7 +27,21 @@ interface NavItemDef {
   label: string;
 }
 
-// ── Start plan nav ──
+const NAV_META: Record<string, { label: string; icon: React.ElementType }> = {
+  '/pagamentos': { label: 'Pagamentos', icon: Receipt },
+  '/despesas': { label: 'Despesas', icon: Wallet },
+  '/metas': { label: 'Metas', icon: Target },
+  '/recebimentos': { label: 'Recebimentos', icon: Receipt },
+  '/agenda': { label: 'Agenda', icon: Calendar },
+  '/calendario': { label: 'Calendário', icon: CalendarDays },
+  '/locais': { label: 'Locais', icon: Building2 },
+  '/dashboard': { label: 'Dashboard', icon: LayoutDashboard },
+  '/relatorios': { label: 'Relatórios', icon: BarChart3 },
+  '/export': { label: 'Exportar', icon: Download },
+  '/config': { label: 'Config', icon: Settings },
+};
+
+// ── Start plan nav (static) ──
 const startFixedItems: NavItemDef[] = [
   { to: '/start', icon: Home, label: 'Início' },
   { to: '/agenda', icon: Calendar, label: 'Agenda' },
@@ -38,38 +54,11 @@ const startMenuItems: NavItemDef[] = [
   { to: '/config', icon: Settings, label: 'Config' },
 ];
 
-// ── Pro plan nav ──
-const proFixedItems: NavItemDef[] = [
-  { to: '/pro', icon: Home, label: 'Início' },
-  { to: '/pagamentos', icon: Receipt, label: 'Pagamentos' },
-  { to: '/despesas', icon: Wallet, label: 'Despesas' },
-  { to: '/metas', icon: Target, label: 'Metas' },
-];
-const proMenuItems: NavItemDef[] = [
-  { to: '/recebimentos', icon: Receipt, label: 'Recebimentos' },
-  { to: '/agenda', icon: Calendar, label: 'Agenda' },
-  { to: '/calendario', icon: CalendarDays, label: 'Calendário' },
-  { to: '/locais', icon: Building2, label: 'Locais' },
-  { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/relatorios', icon: BarChart3, label: 'Relatórios' },
-  { to: '/export', icon: Download, label: 'Exportar' },
-  { to: '/config', icon: Settings, label: 'Config' },
-];
-
-// ── Premium plan nav (same as Pro + extras, can be expanded later) ──
-const premiumFixedItems: NavItemDef[] = proFixedItems.map(item =>
-  item.to === '/pro' ? { ...item, to: '/premium' } : item
-);
-const premiumMenuItems: NavItemDef[] = proMenuItems;
-
-function getNavItems(plan: string | null): { fixed: NavItemDef[]; menu: NavItemDef[] } {
+function getHomePath(plan: string | null): string {
   switch (plan) {
-    case 'pro':
-      return { fixed: proFixedItems, menu: proMenuItems };
-    case 'premium':
-      return { fixed: premiumFixedItems, menu: premiumMenuItems };
-    default:
-      return { fixed: startFixedItems, menu: startMenuItems };
+    case 'pro': return '/pro';
+    case 'premium': return '/premium';
+    default: return '/start';
   }
 }
 
@@ -111,54 +100,78 @@ const MenuItemLink = memo(function MenuItemLink({ to, icon: Icon, label, onClick
 export function BottomNav() {
   const isMobile = useIsMobile();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [prefsOpen, setPrefsOpen] = useState(false);
   const { subscription } = useAuth();
+  const plan = subscription.plan;
+  const isAdvancedPlan = plan === 'pro' || plan === 'premium';
 
-  const { fixed, menu } = getNavItems(subscription.plan);
+  const navPrefs = useNavPrefs();
+
+  const homePath = getHomePath(plan);
+
+  // Build nav items based on plan
+  let fixedItems: NavItemDef[];
+  let menuItemsList: NavItemDef[];
+
+  if (isAdvancedPlan) {
+    // Dynamic bar items from user preferences
+    const barPaths = navPrefs.barItems;
+    fixedItems = [
+      { to: homePath, icon: Home, label: 'Início' },
+      ...barPaths
+        .filter(p => NAV_META[p])
+        .map(p => ({ to: p, icon: NAV_META[p].icon, label: NAV_META[p].label })),
+    ];
+    // Menu overflow items
+    menuItemsList = navPrefs.menuItems
+      .filter(p => NAV_META[p])
+      .map(p => ({ to: p, icon: NAV_META[p].icon, label: NAV_META[p].label }));
+  } else {
+    fixedItems = startFixedItems;
+    menuItemsList = startMenuItems;
+  }
 
   const closeMenu = useCallback(() => setMenuOpen(false), []);
 
+  const openPrefs = useCallback(() => {
+    setMenuOpen(false);
+    setTimeout(() => setPrefsOpen(true), 200);
+  }, []);
+
   const menuContent = (
     <div className="flex flex-col gap-1">
-      {menu.map((item) => (
+      {menuItemsList.map((item) => (
         <MenuItemLink key={item.to} {...item} onClick={closeMenu} />
       ))}
+      {isAdvancedPlan && (
+        <>
+          <div className="border-t border-border my-1" />
+          <button
+            onClick={openPrefs}
+            className="flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-foreground hover:bg-muted"
+          >
+            <Settings2 className="w-5 h-5" />
+            <span className="text-sm font-medium">Personalizar barra</span>
+          </button>
+        </>
+      )}
     </div>
   );
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border safe-bottom">
-      <div className="container">
-        <div className="flex items-center justify-around h-16">
-          {fixed.map((item) => (
-            <NavItem key={item.to} {...item} />
-          ))}
+    <>
+      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border safe-bottom">
+        <div className="container">
+          <div className="flex items-center justify-around h-16">
+            {fixedItems.map((item) => (
+              <NavItem key={item.to} {...item} />
+            ))}
 
-          {/* Menu button */}
-          {isMobile ? (
-            <>
-              <button
-                onClick={() => setMenuOpen(true)}
-                className={cn(
-                  'flex flex-col items-center justify-center gap-1 px-2 py-2 rounded-lg transition-colors min-w-0',
-                  menuOpen ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
-                )}
-              >
-                <MoreHorizontal className="w-5 h-5" />
-                <span className="text-[10px] font-medium leading-tight">Menu</span>
-              </button>
-              <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
-                <SheetContent side="bottom" className="rounded-t-2xl pb-8">
-                  <SheetHeader className="pb-2">
-                    <SheetTitle>Menu</SheetTitle>
-                  </SheetHeader>
-                  {menuContent}
-                </SheetContent>
-              </Sheet>
-            </>
-          ) : (
-            <Popover open={menuOpen} onOpenChange={setMenuOpen}>
-              <PopoverTrigger asChild>
+            {/* Menu button */}
+            {isMobile ? (
+              <>
                 <button
+                  onClick={() => setMenuOpen(true)}
                   className={cn(
                     'flex flex-col items-center justify-center gap-1 px-2 py-2 rounded-lg transition-colors min-w-0',
                     menuOpen ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
@@ -167,14 +180,48 @@ export function BottomNav() {
                   <MoreHorizontal className="w-5 h-5" />
                   <span className="text-[10px] font-medium leading-tight">Menu</span>
                 </button>
-              </PopoverTrigger>
-              <PopoverContent align="end" side="top" className="w-56 p-2">
-                {menuContent}
-              </PopoverContent>
-            </Popover>
-          )}
+                <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
+                  <SheetContent side="bottom" className="rounded-t-2xl pb-8">
+                    <SheetHeader className="pb-2">
+                      <SheetTitle>Menu</SheetTitle>
+                    </SheetHeader>
+                    {menuContent}
+                  </SheetContent>
+                </Sheet>
+              </>
+            ) : (
+              <Popover open={menuOpen} onOpenChange={setMenuOpen}>
+                <PopoverTrigger asChild>
+                  <button
+                    className={cn(
+                      'flex flex-col items-center justify-center gap-1 px-2 py-2 rounded-lg transition-colors min-w-0',
+                      menuOpen ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+                    )}
+                  >
+                    <MoreHorizontal className="w-5 h-5" />
+                    <span className="text-[10px] font-medium leading-tight">Menu</span>
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent align="end" side="top" className="w-56 p-2">
+                  {menuContent}
+                </PopoverContent>
+              </Popover>
+            )}
+          </div>
         </div>
-      </div>
-    </nav>
+      </nav>
+
+      {/* Nav prefs modal for Pro/Premium */}
+      {isAdvancedPlan && (
+        <NavPrefsModal
+          open={prefsOpen}
+          onOpenChange={setPrefsOpen}
+          visibleItems={navPrefs.visibleItems}
+          allItems={navPrefs.allItems}
+          maxVisible={navPrefs.maxVisible}
+          onSave={navPrefs.savePrefs}
+        />
+      )}
+    </>
   );
 }
