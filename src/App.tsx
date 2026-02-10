@@ -29,6 +29,7 @@ import ExpensesPage from "./pages/ExpensesPage";
 import ReportsPage from "./pages/ReportsPage";
 import GoalsPage from "./pages/GoalsPage";
 import ExportPage from "./pages/ExportPage";
+import ReceivablesPage from "./pages/ReceivablesPage";
 
 // Premium plan pages
 import AlertsPage from "./pages/AlertsPage";
@@ -129,6 +130,14 @@ const App = () => (
             />
             
             {/* Pro plan routes */}
+            <Route
+              path="/recebimentos"
+              element={
+                <PlanBasedRoute routePath="/recebimentos">
+                  <ReceivablesPage />
+                </PlanBasedRoute>
+              }
+            />
             <Route
               path="/despesas"
               element={

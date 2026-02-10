@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { memo } from 'react';
+import { memo, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Receipt, Wallet, Target, BarChart3, Download, ArrowRight, Crown,
@@ -11,43 +11,11 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { AppLayout } from '@/components/navigation/AppLayout';
 import { useAuth } from '@/contexts/AuthContext';
-
-const proFeatureCards = [
-  {
-    title: 'Recebimentos',
-    description: 'Próximos 7 e 30 dias',
-    icon: Receipt,
-    path: '/pagamentos',
-    color: 'bg-green-500/10 text-green-600',
-    stat: 'R$ 12.500',
-    statLabel: 'Próx. 7 dias',
-  },
-  {
-    title: 'Despesas',
-    description: 'Controle por categoria',
-    icon: Wallet,
-    path: '/despesas',
-    color: 'bg-red-500/10 text-red-600',
-    stat: 'R$ 3.200',
-    statLabel: 'Este mês',
-  },
-  {
-    title: 'Metas',
-    description: 'Progresso mensal',
-    icon: Target,
-    path: '/metas',
-    color: 'bg-amber-500/10 text-amber-600',
-    stat: '68%',
-    statLabel: 'Atingido',
-  },
-  {
-    title: 'Relatórios',
-    description: 'Por local e ranking',
-    icon: BarChart3,
-    path: '/relatorios',
-    color: 'bg-blue-500/10 text-blue-600',
-  },
-];
+import { useDbEvents } from '@/hooks/useDbEvents';
+import { useDbExpenses } from '@/hooks/useDbExpenses';
+import { useDbGoals } from '@/hooks/useDbGoals';
+import { formatCurrency } from '@/lib/formatters';
+import { Loader2 } from 'lucide-react';
 
 const startShortcuts = [
   { title: 'Agenda', icon: Calendar, path: '/agenda', color: 'bg-teal-500/10 text-teal-600' },
@@ -87,8 +55,94 @@ const ShortcutCard = memo(function ShortcutCard({ title, icon: Icon, path, color
 export default function ProHome() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { currentMonthEvents, pendingPayments, isLoading: eventsLoading } = useDbEvents();
+  const { totalCurrentMonthExpenses, currentMonthExpenses, isLoading: expensesLoading } = useDbExpenses();
+  const { currentMonthGoal, isLoading: goalsLoading } = useDbGoals();
 
   const userName = user?.user_metadata?.name || user?.email?.split('@')[0] || 'Usuário';
+
+  // Real "Recebido este mês" - sum of events with paid_at in current month
+  const receivedThisMonth = useMemo(() => {
+    const now = new Date();
+    const month = now.getMonth();
+    const year = now.getFullYear();
+    return currentMonthEvents
+      .filter(e => e.paidAt) 
+      .reduce((sum, e) => sum + e.netValue, 0);
+  }, [currentMonthEvents]);
+
+  // Real "A receber" - pending payments net value
+  const toReceive = useMemo(() => {
+    return pendingPayments.reduce((sum, e) => sum + e.netValue, 0);
+  }, [pendingPayments]);
+
+  // Goal progress
+  const goalAmount = currentMonthGoal?.targetAmount || 0;
+  const goalProgress = goalAmount > 0 ? Math.min(Math.round((receivedThisMonth / goalAmount) * 100), 100) : 0;
+
+  // Metas progress for the card
+  const metasStat = goalAmount > 0 ? `${goalProgress}%` : '—';
+
+  const isLoading = eventsLoading || expensesLoading || goalsLoading;
+
+  // Receivables next 7 days
+  const next7DaysTotal = useMemo(() => {
+    const now = new Date();
+    return pendingPayments
+      .filter(e => {
+        const payDate = e.paymentDate || e.date;
+        const diff = Math.ceil((new Date(payDate).getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+        return diff >= 0 && diff <= 7;
+      })
+      .reduce((sum, e) => sum + e.netValue, 0);
+  }, [pendingPayments]);
+
+  const proFeatureCards = [
+    {
+      title: 'Recebimentos',
+      description: 'Próximos 7 e 30 dias',
+      icon: Receipt,
+      path: '/recebimentos',
+      color: 'bg-green-500/10 text-green-600',
+      stat: formatCurrency(next7DaysTotal),
+      statLabel: 'Próx. 7 dias',
+    },
+    {
+      title: 'Despesas',
+      description: 'Controle por categoria',
+      icon: Wallet,
+      path: '/despesas',
+      color: 'bg-red-500/10 text-red-600',
+      stat: formatCurrency(totalCurrentMonthExpenses),
+      statLabel: `Este mês`,
+    },
+    {
+      title: 'Metas',
+      description: 'Progresso mensal',
+      icon: Target,
+      path: '/metas',
+      color: 'bg-amber-500/10 text-amber-600',
+      stat: metasStat,
+      statLabel: 'Atingido',
+    },
+    {
+      title: 'Relatórios',
+      description: 'Por local e ranking',
+      icon: BarChart3,
+      path: '/relatorios',
+      color: 'bg-blue-500/10 text-blue-600',
+    },
+  ];
+
+  if (isLoading) {
+    return (
+      <AppLayout title="Início">
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout title="Início">
@@ -114,23 +168,25 @@ export default function ProHome() {
                     <TrendingUp className="w-4 h-4" />
                     Recebido este mês
                   </p>
-                  <p className="text-2xl font-bold text-primary">R$ 18.450</p>
+                  <p className="text-2xl font-bold text-primary">{formatCurrency(receivedThisMonth)}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground flex items-center gap-1">
                     <Clock className="w-4 h-4" />
                     A receber
                   </p>
-                  <p className="text-2xl font-bold text-foreground">R$ 8.200</p>
+                  <p className="text-2xl font-bold text-foreground">{formatCurrency(toReceive)}</p>
                 </div>
               </div>
-              <div className="mt-4">
-                <div className="flex justify-between text-sm mb-2">
-                  <span className="text-muted-foreground">Meta do mês</span>
-                  <span className="font-medium">R$ 18.450 / R$ 25.000</span>
+              {goalAmount > 0 && (
+                <div className="mt-4">
+                  <div className="flex justify-between text-sm mb-2">
+                    <span className="text-muted-foreground">Meta do mês</span>
+                    <span className="font-medium">{formatCurrency(receivedThisMonth)} / {formatCurrency(goalAmount)}</span>
+                  </div>
+                  <Progress value={goalProgress} className="h-2" />
                 </div>
-                <Progress value={68} className="h-2" />
-              </div>
+              )}
             </CardContent>
           </Card>
         </motion.div>
