@@ -157,6 +157,8 @@ export type Database = {
           last_manual_edit_at: string | null
           month: number
           notes: string | null
+          override_at: string | null
+          override_used: boolean | null
           target_amount: number
           updated_at: string
           user_id: string
@@ -169,6 +171,8 @@ export type Database = {
           last_manual_edit_at?: string | null
           month: number
           notes?: string | null
+          override_at?: string | null
+          override_used?: boolean | null
           target_amount: number
           updated_at?: string
           user_id: string
@@ -181,6 +185,8 @@ export type Database = {
           last_manual_edit_at?: string | null
           month?: number
           notes?: string | null
+          override_at?: string | null
+          override_used?: boolean | null
           target_amount?: number
           updated_at?: string
           user_id?: string

@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, memo } from 'react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { 
-  Target, Edit, TrendingUp, Sparkles, Lock, Loader2
+  Target, Edit, TrendingUp, Sparkles, Lock, Unlock, Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,6 +10,8 @@ import { Progress } from '@/components/ui/progress';
 import { Input } from '@/components/ui/input';
 import { AppLayout } from '@/components/navigation/AppLayout';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
 import { formatCurrency } from '@/lib/formatters';
 import { useDbGoals, GoalSuggestion } from '@/hooks/useDbGoals';
@@ -41,11 +43,18 @@ export default function GoalsPage() {
   const {
     currentMonthGoal, isLoading, editLockInfo,
     setGoal, applySuggestion, calculateSuggestion, getCurrentProgress, getHistory,
+    overrideLock,
   } = useDbGoals();
 
   const [isEditing, setIsEditing] = useState(false);
   const [goalValue, setGoalValue] = useState('');
   const [saving, setSaving] = useState(false);
+
+  // Lock modal states
+  const [showLockModal, setShowLockModal] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [confirmChecked, setConfirmChecked] = useState(false);
+  const [overriding, setOverriding] = useState(false);
 
   // Progress state
   const [progress, setProgress] = useState({ received: 0, target: 0, percentage: 0, remaining: 0, achieved: false });
@@ -91,6 +100,31 @@ export default function GoalsPage() {
     if (currentMonthGoal) setGoalValue(String(currentMonthGoal.targetAmount));
   }, [currentMonthGoal]);
 
+  const handleLockClick = useCallback(() => {
+    if (editLockInfo.locked) {
+      setShowLockModal(true);
+    } else {
+      setIsEditing(true);
+    }
+  }, [editLockInfo.locked]);
+
+  const handleOverrideRequest = useCallback(() => {
+    setShowLockModal(false);
+    setConfirmChecked(false);
+    setShowConfirmModal(true);
+  }, []);
+
+  const handleOverrideConfirm = useCallback(async () => {
+    setOverriding(true);
+    const success = await overrideLock();
+    setOverriding(false);
+    if (success) {
+      setShowConfirmModal(false);
+      setConfirmChecked(false);
+      setIsEditing(true);
+    }
+  }, [overrideLock]);
+
   const handleSave = useCallback(async () => {
     const num = Number(goalValue);
     if (!num || num <= 0) return;
@@ -99,7 +133,6 @@ export default function GoalsPage() {
     setSaving(false);
     if (result) {
       setIsEditing(false);
-      // Refresh progress
       getCurrentProgress().then(setProgress);
     }
   }, [goalValue, setGoal, getCurrentProgress]);
@@ -138,22 +171,21 @@ export default function GoalsPage() {
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <span>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        disabled={editLockInfo.locked}
-                        onClick={() => setIsEditing(!isEditing)}
-                      >
-                        {editLockInfo.locked ? <Lock className="w-4 h-4 text-muted-foreground" /> : <Edit className="w-4 h-4" />}
-                      </Button>
-                    </span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleLockClick}
+                      className="cursor-pointer"
+                    >
+                      {editLockInfo.locked
+                        ? <Lock className="w-4 h-4 text-amber-500" />
+                        : <Unlock className="w-4 h-4 text-muted-foreground" />
+                      }
+                    </Button>
                   </TooltipTrigger>
-                  {editLockInfo.locked && editLockInfo.unlockDate && (
-                    <TooltipContent>
-                      <p>Você poderá editar em {editLockInfo.daysRemaining} dia(s) ({format(editLockInfo.unlockDate, 'dd/MM', { locale: ptBR })})</p>
-                    </TooltipContent>
-                  )}
+                  <TooltipContent>
+                    <p>{editLockInfo.locked ? 'Editar meta / ver regras' : 'Editar meta'}</p>
+                  </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
             </div>
@@ -303,6 +335,77 @@ export default function GoalsPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* ─── Lock Explanation Modal ─── */}
+      <Dialog open={showLockModal} onOpenChange={setShowLockModal}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Lock className="w-5 h-5 text-amber-500" />
+              Meta travada
+            </DialogTitle>
+            <DialogDescription className="text-left space-y-3 pt-2">
+              <p>
+                Você poderá editar em <strong>{editLockInfo.daysRemaining} dia(s)</strong>
+                {editLockInfo.unlockDate && (
+                  <> ({format(editLockInfo.unlockDate, 'dd/MM/yyyy', { locale: ptBR })})</>
+                )}.
+              </p>
+              <p className="text-muted-foreground">
+                Metas precisam de tempo para funcionar. Esse período de 15 dias protege você de mudanças por impulso e ajuda a manter a disciplina financeira.
+              </p>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex-col gap-2 sm:flex-col">
+            <Button variant="outline" onClick={() => setShowLockModal(false)} className="w-full">
+              Entendi
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleOverrideRequest}
+              className="w-full"
+            >
+              Alterar mesmo assim
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ─── Double Confirm Modal ─── */}
+      <Dialog open={showConfirmModal} onOpenChange={(open) => { if (!open) { setShowConfirmModal(false); setConfirmChecked(false); } }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-destructive">Tem certeza?</DialogTitle>
+            <DialogDescription className="text-left pt-2">
+              Isso vai quebrar a regra de consistência da meta. A alteração será registrada.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex items-start gap-3 py-2">
+            <Checkbox
+              id="override-confirm"
+              checked={confirmChecked}
+              onCheckedChange={(checked) => setConfirmChecked(checked === true)}
+            />
+            <label htmlFor="override-confirm" className="text-sm text-foreground cursor-pointer leading-snug">
+              Eu entendo e quero alterar agora
+            </label>
+          </div>
+          <DialogFooter className="flex-col gap-2 sm:flex-col">
+            <Button
+              variant="destructive"
+              disabled={!confirmChecked || overriding}
+              onClick={handleOverrideConfirm}
+              className="w-full"
+            >
+              {overriding ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+              Confirmar alteração
+            </Button>
+            <Button variant="outline" onClick={() => { setShowConfirmModal(false); setConfirmChecked(false); }} className="w-full">
+              Cancelar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 }
