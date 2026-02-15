@@ -146,74 +146,26 @@ export function BottomNav() {
     setTimeout(() => setPrefsOpen(true), 200);
   }, []);
 
+  // Pro-only menu items (ordered as requested)
+  const proOnlyMenuItems: NavItemDef[] = [
+    { to: '/recebimentos', icon: Receipt, label: 'Recebimentos' },
+    { to: '/despesas', icon: Wallet, label: 'Despesas' },
+    { to: '/metas', icon: Target, label: 'Metas' },
+    { to: '/relatorios', icon: BarChart3, label: 'Relatórios' },
+  ];
+
   // Build menu content based on plan
   const buildMenuContent = () => {
-    if (!isAdvancedPlan) {
-      // Start plan: simple menu
-      return (
-        <div className="flex flex-col gap-1">
-          {startMenuItems.map((item) => (
-            <MenuItemLink key={item.to} {...item} onClick={closeMenu} />
-          ))}
-        </div>
-      );
-    }
-
-    // Pro/Premium: organized sections with items NOT in the bar
-    const barPaths = navPrefs.barItems;
-    const isInBar = (path: string) => barPaths.includes(path);
-
-    const proItems = PRO_MENU_SECTION.filter(p => !isInBar(p)).map(toNavItem).filter(Boolean) as NavItemDef[];
-    const startItems = START_MENU_SECTION.filter(p => !isInBar(p)).map(toNavItem).filter(Boolean) as NavItemDef[];
-    const systemItems = SYSTEM_MENU_SECTION.filter(p => !isInBar(p)).map(toNavItem).filter(Boolean) as NavItemDef[];
-    // Also include other overflow items not in any section
-    const knownPaths = [...PRO_MENU_SECTION, ...START_MENU_SECTION, ...SYSTEM_MENU_SECTION];
-    const otherOverflow = navPrefs.menuItems
-      .filter(p => !knownPaths.includes(p) && !isInBar(p))
-      .map(toNavItem)
-      .filter(Boolean) as NavItemDef[];
+    const isPro = plan === 'pro' || (subscription.isAdmin && plan !== 'premium');
 
     return (
       <div className="flex flex-col gap-1">
-        {proItems.length > 0 && (
-          <>
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4 pt-2 pb-1">Pro</p>
-            {proItems.map((item) => (
-              <MenuItemLink key={item.to} {...item} onClick={closeMenu} />
-            ))}
-          </>
-        )}
-        {startItems.length > 0 && (
-          <>
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4 pt-2 pb-1">Start</p>
-            {startItems.map((item) => (
-              <MenuItemLink key={item.to} {...item} onClick={closeMenu} />
-            ))}
-          </>
-        )}
-        {otherOverflow.length > 0 && (
-          <>
-            {otherOverflow.map((item) => (
-              <MenuItemLink key={item.to} {...item} onClick={closeMenu} />
-            ))}
-          </>
-        )}
-        {systemItems.length > 0 && (
-          <>
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4 pt-2 pb-1">Sistema</p>
-            {systemItems.map((item) => (
-              <MenuItemLink key={item.to} {...item} onClick={closeMenu} />
-            ))}
-          </>
-        )}
-        <div className="border-t border-border my-1" />
-        <button
-          onClick={openPrefs}
-          className="flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-foreground hover:bg-muted"
-        >
-          <Settings2 className="w-5 h-5" />
-          <span className="text-sm font-medium">Editar barra</span>
-        </button>
+        {isPro && proOnlyMenuItems.map((item) => (
+          <MenuItemLink key={item.to} {...item} onClick={closeMenu} />
+        ))}
+        {startMenuItems.map((item) => (
+          <MenuItemLink key={item.to} {...item} onClick={closeMenu} />
+        ))}
       </div>
     );
   };
