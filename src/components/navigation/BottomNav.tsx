@@ -1,7 +1,8 @@
 import { NavLink, useLocation } from 'react-router-dom';
 import {
   Home, Calendar, CalendarDays, LayoutDashboard, MoreHorizontal,
-  Building2, Receipt, Settings, Wallet, Target, BarChart3, Download, Settings2
+  Building2, Receipt, Settings, Wallet, Target, BarChart3, Download,
+  Bell, TrendingUp, Calculator, FileSpreadsheet
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -9,15 +10,10 @@ import { useState, memo, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavPrefs } from '@/hooks/useNavPrefs';
 import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
+  Sheet, SheetContent, SheetHeader, SheetTitle,
 } from '@/components/ui/sheet';
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
+  Popover, PopoverContent, PopoverTrigger,
 } from '@/components/ui/popover';
 import { NavPrefsModal } from './NavPrefsModal';
 
@@ -39,19 +35,18 @@ const NAV_META: Record<string, { label: string; icon: React.ElementType }> = {
   '/relatorios': { label: 'Relatórios', icon: BarChart3 },
   '/export': { label: 'Exportar', icon: Download },
   '/config': { label: 'Config', icon: Settings },
+  '/insights': { label: 'Insights', icon: TrendingUp },
+  '/resultado-real': { label: 'Resultado Real', icon: Calculator },
+  '/alertas-inteligentes': { label: 'Alertas', icon: Bell },
+  '/contador': { label: 'Export Contador', icon: FileSpreadsheet },
 };
 
-// ── Start plan nav (static) ──
 const startFixedItems: NavItemDef[] = [
   { to: '/start', icon: Home, label: 'Início' },
   { to: '/agenda', icon: Calendar, label: 'Agenda' },
   { to: '/pagamentos', icon: Receipt, label: 'Pagamentos' },
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/locais', icon: Building2, label: 'Locais' },
-];
-const startMenuItems: NavItemDef[] = [
-  { to: '/calendario', icon: CalendarDays, label: 'Calendário' },
-  { to: '/config', icon: Settings, label: 'Config' },
 ];
 
 function getHomePath(plan: string | null): string {
@@ -97,16 +92,25 @@ const MenuItemLink = memo(function MenuItemLink({ to, icon: Icon, label, onClick
   );
 });
 
-// Sections for the Pro/Premium menu
-const PRO_MENU_SECTION = ['/recebimentos', '/despesas', '/metas', '/relatorios'];
-const START_MENU_SECTION = ['/calendario'];
-const SYSTEM_MENU_SECTION = ['/config'];
+// Menu items by plan tier
+const PRO_MENU_ITEMS: NavItemDef[] = [
+  { to: '/recebimentos', icon: Receipt, label: 'Recebimentos' },
+  { to: '/despesas', icon: Wallet, label: 'Despesas' },
+  { to: '/metas', icon: Target, label: 'Metas' },
+  { to: '/relatorios', icon: BarChart3, label: 'Relatórios' },
+];
 
-function toNavItem(path: string): NavItemDef | null {
-  const meta = NAV_META[path];
-  if (!meta) return null;
-  return { to: path, icon: meta.icon, label: meta.label };
-}
+const PREMIUM_MENU_ITEMS: NavItemDef[] = [
+  { to: '/insights', icon: TrendingUp, label: 'Insights' },
+  { to: '/resultado-real', icon: Calculator, label: 'Resultado Real' },
+  { to: '/alertas-inteligentes', icon: Bell, label: 'Alertas' },
+  { to: '/contador', icon: FileSpreadsheet, label: 'Export Contador' },
+];
+
+const COMMON_MENU_ITEMS: NavItemDef[] = [
+  { to: '/calendario', icon: CalendarDays, label: 'Calendário' },
+  { to: '/config', icon: Settings, label: 'Config' },
+];
 
 export function BottomNav() {
   const isMobile = useIsMobile();
@@ -121,11 +125,9 @@ export function BottomNav() {
 
   const homePath = getHomePath(isAdvancedPlan ? (plan === 'premium' ? 'premium' : 'pro') : plan);
 
-  // Build nav items based on plan
   let fixedItems: NavItemDef[];
 
   if (isAdvancedPlan) {
-    // Dynamic bar items from user preferences
     const barPaths = navPrefs.barItems;
     fixedItems = [
       { to: homePath, icon: Home, label: 'Início' },
@@ -136,7 +138,7 @@ export function BottomNav() {
   } else {
     fixedItems = [
       { to: homePath, icon: Home, label: 'Início' },
-      ...startFixedItems.slice(1), // skip the hardcoded /start
+      ...startFixedItems.slice(1),
     ];
   }
 
@@ -147,32 +149,33 @@ export function BottomNav() {
     setTimeout(() => setPrefsOpen(true), 200);
   }, []);
 
-  // Pro-only menu items (ordered as requested)
-  const proOnlyMenuItems: NavItemDef[] = [
-    { to: '/recebimentos', icon: Receipt, label: 'Recebimentos' },
-    { to: '/despesas', icon: Wallet, label: 'Despesas' },
-    { to: '/metas', icon: Target, label: 'Metas' },
-    { to: '/relatorios', icon: BarChart3, label: 'Relatórios' },
-  ];
+  // Build menu items based strictly on subscription.plan
+  const menuItems = (() => {
+    const items: NavItemDef[] = [];
 
-  // Build menu content based on plan AND current route
-  const buildMenuContent = () => {
-    // Show pro items if user has pro or premium plan
-    const isPro = plan === 'pro' || plan === 'premium' || subscription.isAdmin;
+    // Pro items for pro and premium plans
+    if (plan === 'pro' || plan === 'premium' || subscription.isAdmin) {
+      items.push(...PRO_MENU_ITEMS);
+    }
 
-    return (
-      <div className="flex flex-col gap-1">
-        {isPro && proOnlyMenuItems.map((item) => (
-          <MenuItemLink key={item.to} {...item} onClick={closeMenu} />
-        ))}
-        {startMenuItems.map((item) => (
-          <MenuItemLink key={item.to} {...item} onClick={closeMenu} />
-        ))}
-      </div>
-    );
-  };
+    // Premium-only items
+    if (plan === 'premium' || (subscription.isAdmin && plan !== 'pro')) {
+      items.push(...PREMIUM_MENU_ITEMS);
+    }
 
-  const menuContent = buildMenuContent();
+    // Common items always shown
+    items.push(...COMMON_MENU_ITEMS);
+
+    return items;
+  })();
+
+  const menuContent = (
+    <div className="flex flex-col gap-1">
+      {menuItems.map((item) => (
+        <MenuItemLink key={item.to} {...item} onClick={closeMenu} />
+      ))}
+    </div>
+  );
 
   return (
     <>
@@ -183,7 +186,6 @@ export function BottomNav() {
               <NavItem key={item.to} {...item} />
             ))}
 
-            {/* Menu button */}
             {isMobile ? (
               <>
                 <button
@@ -227,7 +229,6 @@ export function BottomNav() {
         </div>
       </nav>
 
-      {/* Nav prefs modal for Pro/Premium */}
       {isAdvancedPlan && (
         <NavPrefsModal
           open={prefsOpen}
