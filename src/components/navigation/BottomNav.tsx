@@ -157,11 +157,8 @@ export function BottomNav() {
 
   // Build menu content based on plan AND current route
   const buildMenuContent = () => {
-    // Show pro items if plan is pro, OR if we're on /pro route (covers bypass/null plan scenarios)
-    const isPro = plan === 'pro' || pathname === '/pro' || (subscription.isAdmin && plan !== 'premium');
-
-    // Temporary debug log
-    console.log('[BottomNav DEBUG]', { plan, pathname, isPro, isAdmin: subscription.isAdmin, subscribed: subscription.subscribed });
+    // Show pro items if user has pro plan (works on ANY route, not just /pro)
+    const isPro = plan === 'pro' || (subscription.isAdmin && plan !== 'premium');
 
     return (
       <div className="flex flex-col gap-1">
