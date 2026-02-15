@@ -12,6 +12,7 @@ import LandingPage from "./pages/LandingPage";
 import AuthPage from "./pages/AuthPage";
 import SubscribePage from "./pages/SubscribePage";
 import NotFound from "./pages/NotFound";
+import CheckoutTestPage from "./pages/CheckoutTestPage";
 
 // Plan home pages
 import { StartHome, ProHome, PremiumHome } from "./pages/plan-homes";
@@ -52,6 +53,7 @@ const App = () => (
             <Route path="/" element={<LandingPage />} />
             <Route path="/auth" element={<AuthPage />} />
             <Route path="/subscribe" element={<SubscribePage />} />
+            <Route path="/checkout-test" element={<CheckoutTestPage />} />
             
             {/* Plan home routes */}
             <Route
