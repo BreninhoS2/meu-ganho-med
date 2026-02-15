@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { 
   Calculator, 
   TrendingUp, 
@@ -5,64 +6,76 @@ import {
   DollarSign,
   Receipt,
   Wallet,
-  ArrowRight
+  Loader2
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { AppLayout } from '@/components/navigation/AppLayout';
 import { cn } from '@/lib/utils';
-
-// Mock data
-const mockResult = {
-  grossIncome: 26650,
-  totalExpenses: 3200,
-  taxes: 2132, // 8% simplified
-  netResult: 21318,
-  previousMonthNet: 19500,
-};
-
-const breakdown = [
-  {
-    label: 'Receita bruta',
-    value: mockResult.grossIncome,
-    icon: TrendingUp,
-    type: 'income',
-  },
-  {
-    label: 'Despesas operacionais',
-    value: -mockResult.totalExpenses,
-    icon: Wallet,
-    type: 'expense',
-  },
-  {
-    label: 'Impostos estimados (8%)',
-    value: -mockResult.taxes,
-    icon: Receipt,
-    type: 'tax',
-  },
-];
+import { useDbEvents } from '@/hooks/useDbEvents';
+import { useDbExpenses } from '@/hooks/useDbExpenses';
+import { formatCurrency } from '@/lib/formatters';
 
 export default function NetResultPage() {
-  const formatCurrency = (value: number) => {
-    const absValue = Math.abs(value);
-    const formatted = absValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-    return value < 0 ? `-${formatted}` : formatted;
-  };
+  const { events, currentMonthEvents, isLoading: eventsLoading } = useDbEvents();
+  const { totalCurrentMonthExpenses, isLoading: expensesLoading } = useDbExpenses();
 
-  const change = ((mockResult.netResult - mockResult.previousMonthNet) / mockResult.previousMonthNet) * 100;
+  const isLoading = eventsLoading || expensesLoading;
+
+  const { grossIncome, taxes, netResult, previousMonthNet } = useMemo(() => {
+    const now = new Date();
+    const curMonth = now.getMonth();
+    const curYear = now.getFullYear();
+
+    const gross = currentMonthEvents
+      .filter(e => e.paidAt)
+      .reduce((s, e) => s + e.grossValue, 0);
+
+    const taxRate = 0.08;
+    const t = gross * taxRate;
+    const net = gross - totalCurrentMonthExpenses - t;
+
+    // Previous month
+    const prevDate = new Date(curYear, curMonth - 1, 1);
+    const prevMonth = prevDate.getMonth();
+    const prevYear = prevDate.getFullYear();
+    const prevGross = (events || [])
+      .filter(e => {
+        const d = new Date(e.date);
+        return d.getMonth() === prevMonth && d.getFullYear() === prevYear && e.paidAt;
+      })
+      .reduce((s, e) => s + e.grossValue, 0);
+    const prevNet = prevGross - (prevGross * taxRate);
+
+    return { grossIncome: gross, taxes: t, netResult: net, previousMonthNet: prevNet };
+  }, [currentMonthEvents, events, totalCurrentMonthExpenses]);
+
+  const change = previousMonthNet > 0 ? ((netResult - previousMonthNet) / previousMonthNet) * 100 : 0;
   const isPositive = change >= 0;
+
+  const breakdown = [
+    { label: 'Receita bruta', value: grossIncome, icon: TrendingUp, type: 'income' },
+    { label: 'Despesas operacionais', value: -totalCurrentMonthExpenses, icon: Wallet, type: 'expense' },
+    { label: 'Impostos estimados (8%)', value: -taxes, icon: Receipt, type: 'tax' },
+  ];
+
+  if (isLoading) {
+    return (
+      <AppLayout title="Resultado Real">
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout title="Resultado Real">
       <div className="space-y-4">
-        {/* Header */}
         <div>
           <h1 className="text-xl font-bold text-foreground">Resultado Líquido Real</h1>
-          <p className="text-sm text-muted-foreground">
-            Quanto você realmente ganhou este mês
-          </p>
+          <p className="text-sm text-muted-foreground">Quanto você realmente ganhou este mês</p>
         </div>
 
-        {/* Main result card */}
         <Card className="bg-gradient-to-br from-primary/5 to-emerald-500/5 border-primary/20">
           <CardContent className="pt-6">
             <div className="flex items-center justify-center mb-4">
@@ -72,25 +85,17 @@ export default function NetResultPage() {
             </div>
             <div className="text-center">
               <p className="text-sm text-muted-foreground">Lucro líquido do mês</p>
-              <p className="text-4xl font-bold text-primary mt-1">
-                {formatCurrency(mockResult.netResult)}
-              </p>
-              <div className={cn(
-                "flex items-center justify-center gap-1 mt-2 text-sm",
-                isPositive ? "text-primary" : "text-destructive"
-              )}>
-                {isPositive ? (
-                  <TrendingUp className="w-4 h-4" />
-                ) : (
-                  <TrendingDown className="w-4 h-4" />
-                )}
-                <span>{Math.abs(change).toFixed(1)}% vs mês anterior</span>
-              </div>
+              <p className="text-4xl font-bold text-primary mt-1">{formatCurrency(netResult)}</p>
+              {previousMonthNet > 0 && (
+                <div className={cn("flex items-center justify-center gap-1 mt-2 text-sm", isPositive ? "text-primary" : "text-destructive")}>
+                  {isPositive ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
+                  <span>{Math.abs(change).toFixed(1)}% vs mês anterior</span>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
 
-        {/* Breakdown */}
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Composição do resultado</CardTitle>
@@ -111,41 +116,30 @@ export default function NetResultPage() {
                     </div>
                     <span className="text-sm">{item.label}</span>
                   </div>
-                  <span className={cn(
-                    "font-semibold",
-                    item.value >= 0 ? "text-primary" : "text-destructive"
-                  )}>
+                  <span className={cn("font-semibold", item.value >= 0 ? "text-primary" : "text-destructive")}>
                     {formatCurrency(item.value)}
                   </span>
                 </div>
-                {index < breakdown.length - 1 && (
-                  <div className="border-b border-border/50 mt-3" />
-                )}
+                {index < breakdown.length - 1 && <div className="border-b border-border/50 mt-3" />}
               </div>
             ))}
-            
             <div className="pt-2 border-t-2 border-primary/20">
               <div className="flex items-center justify-between">
                 <span className="font-semibold text-foreground">Resultado líquido</span>
-                <span className="text-xl font-bold text-primary">
-                  {formatCurrency(mockResult.netResult)}
-                </span>
+                <span className="text-xl font-bold text-primary">{formatCurrency(netResult)}</span>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Info card */}
         <Card className="border-muted">
           <CardContent className="pt-4">
             <div className="flex items-start gap-3">
               <DollarSign className="w-5 h-5 text-muted-foreground mt-0.5 flex-shrink-0" />
-              <div>
-                <p className="text-sm text-muted-foreground">
-                  O resultado líquido considera sua receita bruta menos despesas operacionais e uma estimativa de impostos. 
-                  Para um cálculo preciso, consulte seu contador.
-                </p>
-              </div>
+              <p className="text-sm text-muted-foreground">
+                O resultado líquido considera sua receita bruta menos despesas operacionais e uma estimativa de impostos. 
+                Para um cálculo preciso, consulte seu contador.
+              </p>
             </div>
           </CardContent>
         </Card>
