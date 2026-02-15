@@ -226,6 +226,29 @@ export function useDbGoals() {
     if (!isLoading && user) ensureCurrentMonthGoal();
   }, [isLoading, user, ensureCurrentMonthGoal]);
 
+  // ─── Override lock (conscious unlock) ───
+  const overrideLock = useCallback(async (): Promise<boolean> => {
+    if (!user || !currentMonthGoal) return false;
+    try {
+      const { error } = await supabase
+        .from('goals')
+        .update({
+          override_used: true,
+          override_at: new Date().toISOString(),
+          last_manual_edit_at: null, // clear lock so setGoal won't block
+        })
+        .eq('id', currentMonthGoal.id);
+      if (error) throw error;
+      // Refresh goals to clear editLockInfo
+      await fetchGoals();
+      return true;
+    } catch (e) {
+      console.error('Error overriding lock:', e);
+      toast({ title: 'Erro ao desbloquear', variant: 'destructive' });
+      return false;
+    }
+  }, [user, currentMonthGoal, fetchGoals, toast]);
+
   // ─── Set goal (manual edit) ───
   const setGoal = useCallback(async (targetAmount: number) => {
     if (!user) return null;
@@ -335,6 +358,7 @@ export function useDbGoals() {
     isLoading,
     editLockInfo,
     setGoal,
+    overrideLock,
     applySuggestion,
     calculateSuggestion,
     getCurrentProgress,
