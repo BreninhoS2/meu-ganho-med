@@ -14,7 +14,7 @@ export default function CheckoutTestPage() {
     setError(null);
     try {
       const { data, error: fnError } = await supabase.functions.invoke('create-checkout', {
-        body: { priceId: 'price_1T15A7GTYqtJZx3uot1IDKV1' },
+        body: { priceId: 'price_1SyclVGTYqtJZx3u0K3ogDvb' },
       });
 
       if (fnError) throw new Error(fnError.message);
@@ -36,7 +36,7 @@ export default function CheckoutTestPage() {
         Usuário: {user?.email ?? 'não logado'}
       </p>
       <p className="text-muted-foreground text-xs">
-        priceId: <code>price_1T15A7GTYqtJZx3uot1IDKV1</code>
+        priceId: <code>price_1SyclVGTYqtJZx3u0K3ogDvb</code> (Premium R$69,90/mês)
       </p>
 
       <Button onClick={handleCheckout} disabled={loading || !user} size="lg">
