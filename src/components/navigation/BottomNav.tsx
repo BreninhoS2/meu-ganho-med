@@ -1,4 +1,4 @@
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import {
   Home, Calendar, CalendarDays, LayoutDashboard, MoreHorizontal,
   Building2, Receipt, Settings, Wallet, Target, BarChart3, Download, Settings2
@@ -110,6 +110,7 @@ function toNavItem(path: string): NavItemDef | null {
 
 export function BottomNav() {
   const isMobile = useIsMobile();
+  const { pathname } = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
   const [prefsOpen, setPrefsOpen] = useState(false);
   const { subscription } = useAuth();
@@ -154,9 +155,13 @@ export function BottomNav() {
     { to: '/relatorios', icon: BarChart3, label: 'Relatórios' },
   ];
 
-  // Build menu content based on plan
+  // Build menu content based on plan AND current route
   const buildMenuContent = () => {
-    const isPro = plan === 'pro' || (subscription.isAdmin && plan !== 'premium');
+    // Show pro items if plan is pro, OR if we're on /pro route (covers bypass/null plan scenarios)
+    const isPro = plan === 'pro' || pathname === '/pro' || (subscription.isAdmin && plan !== 'premium');
+
+    // Temporary debug log
+    console.log('[BottomNav DEBUG]', { plan, pathname, isPro, isAdmin: subscription.isAdmin, subscribed: subscription.subscribed });
 
     return (
       <div className="flex flex-col gap-1">
