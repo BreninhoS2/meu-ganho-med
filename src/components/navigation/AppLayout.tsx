@@ -1,4 +1,5 @@
 import { ReactNode } from 'react';
+import { useLocation } from 'react-router-dom';
 import { BottomNav } from './BottomNav';
 import { Stethoscope } from 'lucide-react';
 
@@ -9,8 +10,11 @@ interface AppLayoutProps {
 }
 
 export function AppLayout({ children, title, showHeader = true }: AppLayoutProps) {
+  const { pathname } = useLocation();
+  const hideBottomNav = pathname === '/config';
+
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className={`min-h-screen bg-background ${hideBottomNav ? '' : 'pb-20'}`}>
       {showHeader && (
         <header className="sticky top-0 z-30 bg-background/80 backdrop-blur-sm border-b border-border/50">
           <div className="container py-4 flex items-center justify-between">
@@ -30,7 +34,7 @@ export function AppLayout({ children, title, showHeader = true }: AppLayoutProps
         {children}
       </main>
       
-      <BottomNav />
+      {!hideBottomNav && <BottomNav />}
     </div>
   );
 }
