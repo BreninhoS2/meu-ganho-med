@@ -14,7 +14,7 @@ export default function CheckoutTestPage() {
     setError(null);
     try {
       const { data, error: fnError } = await supabase.functions.invoke('create-checkout', {
-        body: { priceId: 'price_1SyclVGTYqtJZx3u0K3ogDvb' },
+        body: { priceId: 'price_1T15A7GTYqtJZx3uot1IDKV1' },
       });
 
       if (fnError) throw new Error(fnError.message);
