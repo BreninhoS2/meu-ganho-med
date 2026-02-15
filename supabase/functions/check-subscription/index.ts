@@ -77,7 +77,30 @@ serve(async (req) => {
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
     
     if (customers.data.length === 0) {
-      logStep("No customer found, returning unsubscribed state");
+      logStep("No Stripe customer found, checking local subscriptions table");
+
+      // Fallback: check subscriptions table for manually activated plans
+      const { data: localSub } = await supabaseClient
+        .from("subscriptions")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("status", "active")
+        .maybeSingle();
+
+      if (localSub) {
+        logStep("Found active local subscription", { plan: localSub.plan, end: localSub.current_period_end });
+        return new Response(JSON.stringify({
+          subscribed: true,
+          plan: localSub.plan,
+          subscription_end: localSub.current_period_end,
+          is_admin: false,
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 200,
+        });
+      }
+
+      logStep("No local subscription found either, returning unsubscribed state");
       return new Response(JSON.stringify({ 
         subscribed: false,
         plan: null,
