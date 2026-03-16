@@ -517,7 +517,7 @@ export function FeaturesSection() {
       id="recursos"
       ref={sectionRef}
       className="relative bg-gradient-to-b from-background via-muted/5 to-background"
-      style={{ height: "300vh", touchAction: "pan-y" }}
+      style={{ height: "200vh", touchAction: "pan-y" }}
     >
       {/* Invisible sentinels for IntersectionObserver */}
       <div
@@ -543,7 +543,7 @@ export function FeaturesSection() {
       <div
         className="sticky top-[64px] flex flex-col items-center overflow-visible"
         style={{
-          height: "calc(100vh - 64px)",
+          height: "calc(100vh - 100px)",
           willChange: "transform",
           transform: "translateZ(0)",
         }}
@@ -566,8 +566,8 @@ export function FeaturesSection() {
             className="relative flex-1 w-full mx-auto overflow-visible"
             style={{
               maxWidth: "min(880px, 92vw)",
-              minHeight: "min(340px, calc(100vh - 200px))",
-              maxHeight: "calc(100vh - 200px)",
+              minHeight: "min(340px, calc(100vh - 260px))",
+              maxHeight: "calc(100vh - 260px)",
             }}
           >
             <AnimatePresence mode="wait" initial={false}>
