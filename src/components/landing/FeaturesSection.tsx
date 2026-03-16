@@ -391,8 +391,10 @@ export function FeaturesSection() {
   const [direction, setDirection] = useState<"down" | "up">("down");
   const cooldownRef = useRef(false);
   const prevStepRef = useRef(0);
-  // Track if user has "completed" the last step (needs one extra scroll to release)
-  const exitBufferRef = useRef(false);
+  const edgeLockRef = useRef(false);
+  const edgeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const COOLDOWN_MS = 700;
+  const EDGE_LOCK_MS = 1400;
 
   useEffect(() => {
     if (isMobile) return;
@@ -402,12 +404,11 @@ export function FeaturesSection() {
       if (!section) return;
 
       const rect = section.getBoundingClientRect();
-      // Section is "active" when its top is near or above viewport top
-      // and bottom is still visible
       const sectionActive = rect.top <= 60 && rect.bottom >= window.innerHeight * 0.5;
 
       if (!sectionActive) {
-        exitBufferRef.current = false;
+        edgeLockRef.current = false;
+        if (edgeTimerRef.current) { clearTimeout(edgeTimerRef.current); edgeTimerRef.current = null; }
         return;
       }
 
@@ -415,37 +416,31 @@ export function FeaturesSection() {
       const goingDown = e.deltaY > 0;
       const goingUp = e.deltaY < 0;
 
-      // At last step going down: block one scroll event as buffer, then release
-      if (goingDown && currentStep >= 2) {
-        if (!exitBufferRef.current) {
-          exitBufferRef.current = true;
+      // At boundary: use time-based edge lock
+      if ((goingDown && currentStep >= 2) || (goingUp && currentStep <= 0)) {
+        if (edgeLockRef.current) {
           e.preventDefault();
           return;
         }
-        // Buffer already consumed → let scroll pass
+        // Start edge lock
+        edgeLockRef.current = true;
+        e.preventDefault();
+        edgeTimerRef.current = setTimeout(() => {
+          edgeLockRef.current = false;
+          edgeTimerRef.current = null;
+        }, EDGE_LOCK_MS);
         return;
       }
 
-      // At first step going up: block one scroll event as buffer, then release
-      if (goingUp && currentStep <= 0) {
-        if (!exitBufferRef.current) {
-          exitBufferRef.current = true;
-          e.preventDefault();
-          return;
-        }
-        return;
-      }
-
-      // Reset exit buffer when not at boundary
-      exitBufferRef.current = false;
+      // Not at boundary → reset edge lock
+      edgeLockRef.current = false;
+      if (edgeTimerRef.current) { clearTimeout(edgeTimerRef.current); edgeTimerRef.current = null; }
 
       // Block page scroll
       e.preventDefault();
 
-      // During cooldown, eat the event
       if (cooldownRef.current) return;
 
-      // Change step
       cooldownRef.current = true;
       const newStep = goingDown
         ? Math.min(currentStep + 1, 2)
@@ -459,12 +454,14 @@ export function FeaturesSection() {
 
       setTimeout(() => {
         cooldownRef.current = false;
-      }, 1500);
+      }, COOLDOWN_MS);
     };
 
-    // Global listener to catch wheel before browser scrolls
     window.addEventListener("wheel", onWheel, { passive: false });
-    return () => window.removeEventListener("wheel", onWheel);
+    return () => {
+      window.removeEventListener("wheel", onWheel);
+      if (edgeTimerRef.current) clearTimeout(edgeTimerRef.current);
+    };
   }, [isMobile]);
 
   // Keep ref in sync
