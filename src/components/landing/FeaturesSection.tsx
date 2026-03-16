@@ -517,7 +517,7 @@ export function FeaturesSection() {
       id="recursos"
       ref={sectionRef}
       className="relative bg-gradient-to-b from-background via-muted/5 to-background"
-      style={{ height: "300vh", touchAction: "pan-y" }}
+      style={{ height: "200vh", touchAction: "pan-y" }}
     >
       {/* Invisible sentinels for IntersectionObserver */}
       <div
