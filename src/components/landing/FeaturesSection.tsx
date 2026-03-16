@@ -393,8 +393,8 @@ export function FeaturesSection() {
   const prevStepRef = useRef(0);
   const edgeLockRef = useRef(false);
   const edgeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const COOLDOWN_MS = 700;
-  const EDGE_LOCK_MS = 1400;
+  const COOLDOWN_MS = 900;
+  const EDGE_LOCK_MS = 1800;
 
   useEffect(() => {
     if (isMobile) return;
