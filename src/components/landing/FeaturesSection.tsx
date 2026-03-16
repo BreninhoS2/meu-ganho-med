@@ -467,7 +467,6 @@ export function FeaturesSection() {
     return () => window.removeEventListener("wheel", onWheel);
   }, [isMobile]);
 
-  const prevStepRef = useRef(0);
   // Keep ref in sync
   useEffect(() => {
     prevStepRef.current = activeStep;
