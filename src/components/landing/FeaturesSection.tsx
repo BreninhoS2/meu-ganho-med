@@ -543,7 +543,7 @@ export function FeaturesSection() {
       <div
         className="sticky top-[64px] flex flex-col items-center overflow-visible"
         style={{
-          height: "calc(100vh - 64px)",
+          height: "calc(100vh - 100px)",
           willChange: "transform",
           transform: "translateZ(0)",
         }}
