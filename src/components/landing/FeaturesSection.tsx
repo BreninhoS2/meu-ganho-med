@@ -566,8 +566,8 @@ export function FeaturesSection() {
             className="relative flex-1 w-full mx-auto overflow-visible"
             style={{
               maxWidth: "min(880px, 92vw)",
-              minHeight: "min(340px, calc(100vh - 200px))",
-              maxHeight: "calc(100vh - 200px)",
+              minHeight: "min(340px, calc(100vh - 260px))",
+              maxHeight: "calc(100vh - 260px)",
             }}
           >
             <AnimatePresence mode="wait" initial={false}>
