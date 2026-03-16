@@ -389,75 +389,82 @@ export function FeaturesSection() {
   const sectionRef = useRef<HTMLDivElement>(null);
   const [activeStep, setActiveStep] = useState(0);
   const [direction, setDirection] = useState<"down" | "up">("down");
-  const isLockedRef = useRef(false);
   const cooldownRef = useRef(false);
-  const accumulatedDelta = useRef(0);
-  const DELTA_THRESHOLD = 80;
+  const prevStepRef = useRef(0);
+  // Track if user has "completed" the last step (needs one extra scroll to release)
+  const exitBufferRef = useRef(false);
 
-  // Scroll hijack: intercept wheel inside section, change plans, block page scroll
   useEffect(() => {
     if (isMobile) return;
 
-    const section = sectionRef.current;
-    if (!section) return;
-
     const onWheel = (e: WheelEvent) => {
+      const section = sectionRef.current;
+      if (!section) return;
+
       const rect = section.getBoundingClientRect();
-      const inView = rect.top <= 10 && rect.bottom >= window.innerHeight - 10;
+      // Section is "active" when its top is near or above viewport top
+      // and bottom is still visible
+      const sectionActive = rect.top <= 60 && rect.bottom >= window.innerHeight * 0.5;
 
-      if (!inView) {
-        isLockedRef.current = false;
-        accumulatedDelta.current = 0;
+      if (!sectionActive) {
+        exitBufferRef.current = false;
         return;
       }
 
-      // Determine current step from state via ref trick
       const currentStep = prevStepRef.current;
+      const goingDown = e.deltaY > 0;
+      const goingUp = e.deltaY < 0;
 
-      // Scrolling down at last step or scrolling up at first step → release
-      if (e.deltaY > 0 && currentStep >= 2) {
-        isLockedRef.current = false;
-        accumulatedDelta.current = 0;
+      // At last step going down: block one scroll event as buffer, then release
+      if (goingDown && currentStep >= 2) {
+        if (!exitBufferRef.current) {
+          exitBufferRef.current = true;
+          e.preventDefault();
+          return;
+        }
+        // Buffer already consumed → let scroll pass
         return;
       }
-      if (e.deltaY < 0 && currentStep <= 0) {
-        isLockedRef.current = false;
-        accumulatedDelta.current = 0;
+
+      // At first step going up: block one scroll event as buffer, then release
+      if (goingUp && currentStep <= 0) {
+        if (!exitBufferRef.current) {
+          exitBufferRef.current = true;
+          e.preventDefault();
+          return;
+        }
         return;
       }
 
-      // Lock scroll and accumulate delta
+      // Reset exit buffer when not at boundary
+      exitBufferRef.current = false;
+
+      // Block page scroll
       e.preventDefault();
-      isLockedRef.current = true;
 
+      // During cooldown, eat the event
       if (cooldownRef.current) return;
 
-      accumulatedDelta.current += e.deltaY;
+      // Change step
+      cooldownRef.current = true;
+      const newStep = goingDown
+        ? Math.min(currentStep + 1, 2)
+        : Math.max(currentStep - 1, 0);
 
-      if (Math.abs(accumulatedDelta.current) >= DELTA_THRESHOLD) {
-        const goDown = accumulatedDelta.current > 0;
-        accumulatedDelta.current = 0;
-        cooldownRef.current = true;
-
-        const newStep = goDown
-          ? Math.min(currentStep + 1, 2)
-          : Math.max(currentStep - 1, 0);
-
-        if (newStep !== currentStep) {
-          prevStepRef.current = newStep;
-          setDirection(goDown ? "down" : "up");
-          setActiveStep(newStep);
-        }
-
-        setTimeout(() => {
-          cooldownRef.current = false;
-        }, 600);
+      if (newStep !== currentStep) {
+        prevStepRef.current = newStep;
+        setDirection(goingDown ? "down" : "up");
+        setActiveStep(newStep);
       }
+
+      setTimeout(() => {
+        cooldownRef.current = false;
+      }, 700);
     };
 
-    // Use non-passive to allow preventDefault
-    section.addEventListener("wheel", onWheel, { passive: false });
-    return () => section.removeEventListener("wheel", onWheel);
+    // Global listener to catch wheel before browser scrolls
+    window.addEventListener("wheel", onWheel, { passive: false });
+    return () => window.removeEventListener("wheel", onWheel);
   }, [isMobile]);
 
   const prevStepRef = useRef(0);
