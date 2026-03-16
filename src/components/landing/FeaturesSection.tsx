@@ -459,7 +459,7 @@ export function FeaturesSection() {
 
       setTimeout(() => {
         cooldownRef.current = false;
-      }, 700);
+      }, 1500);
     };
 
     // Global listener to catch wheel before browser scrolls
