@@ -389,100 +389,105 @@ export function FeaturesSection() {
   const sectionRef = useRef<HTMLDivElement>(null);
   const [activeStep, setActiveStep] = useState(0);
   const [direction, setDirection] = useState<"down" | "up">("down");
-  const prevStep = useRef(0);
+  const isLockedRef = useRef(false);
+  const cooldownRef = useRef(false);
+  const accumulatedDelta = useRef(0);
+  const DELTA_THRESHOLD = 80;
 
-  // Use native scroll + IntersectionObserver sentinel approach
-  // The section is 300vh tall; CSS sticky keeps the card visible.
-  // Three invisible sentinel divs at 0%, 33%, 66% trigger step changes.
-  const sentinel0 = useRef<HTMLDivElement>(null);
-  const sentinel1 = useRef<HTMLDivElement>(null);
-  const sentinel2 = useRef<HTMLDivElement>(null);
-
+  // Scroll hijack: intercept wheel inside section, change plans, block page scroll
   useEffect(() => {
     if (isMobile) return;
 
-    const sentinels = [sentinel0.current, sentinel1.current, sentinel2.current];
-    if (sentinels.some((s) => !s)) return;
+    const section = sectionRef.current;
+    if (!section) return;
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        // Find the sentinel closest to center of viewport that is intersecting
-        let bestIndex = -1;
-        let bestRatio = 0;
-        entries.forEach((entry) => {
-          const idx = Number(entry.target.getAttribute("data-step"));
-          if (entry.isIntersecting && entry.intersectionRatio > bestRatio) {
-            bestRatio = entry.intersectionRatio;
-            bestIndex = idx;
-          }
-        });
+    const onWheel = (e: WheelEvent) => {
+      const rect = section.getBoundingClientRect();
+      const inView = rect.top <= 10 && rect.bottom >= window.innerHeight - 10;
 
-        if (bestIndex === -1) {
-          // Check which sentinel is most visible by checking all
-          sentinels.forEach((s, idx) => {
-            if (!s) return;
-            const rect = s.getBoundingClientRect();
-            const vh = window.innerHeight;
-            // If sentinel top is above center of viewport, this step is active
-            if (rect.top <= vh * 0.5 && rect.bottom >= 0) {
-              bestIndex = idx;
-            }
-          });
-        }
-
-        if (bestIndex >= 0 && bestIndex !== prevStep.current) {
-          const newDir = bestIndex > prevStep.current ? "down" : "up";
-          prevStep.current = bestIndex;
-          setDirection(newDir);
-          setActiveStep(bestIndex);
-        }
-      },
-      {
-        // Trigger when sentinel crosses the middle of the viewport
-        rootMargin: "-40% 0px -40% 0px",
-        threshold: [0, 0.25, 0.5, 0.75, 1],
+      if (!inView) {
+        isLockedRef.current = false;
+        accumulatedDelta.current = 0;
+        return;
       }
-    );
 
-    sentinels.forEach((s) => s && observer.observe(s));
-    return () => observer.disconnect();
-  }, [isMobile]);
+      // Determine current step from state via ref trick
+      const currentStep = prevStepRef.current;
 
-  // Fallback: scroll-position-based step detection (no layout thrash — uses scrollY only)
-  useEffect(() => {
-    if (isMobile) return;
+      // Scrolling down at last step or scrolling up at first step → release
+      if (e.deltaY > 0 && currentStep >= 2) {
+        isLockedRef.current = false;
+        accumulatedDelta.current = 0;
+        return;
+      }
+      if (e.deltaY < 0 && currentStep <= 0) {
+        isLockedRef.current = false;
+        accumulatedDelta.current = 0;
+        return;
+      }
 
-    let ticking = false;
-    const onScroll = () => {
-      if (ticking) return;
-      ticking = true;
-      requestAnimationFrame(() => {
-        ticking = false;
-        if (!sectionRef.current) return;
-        // Read only scrollY and cached offsetTop/offsetHeight
-        const sectionTop = sectionRef.current.offsetTop;
-        const sectionHeight = sectionRef.current.offsetHeight;
-        const scrollY = window.scrollY;
-        const relativeScroll = scrollY - sectionTop;
-        if (relativeScroll < 0 || relativeScroll > sectionHeight) return;
+      // Lock scroll and accumulate delta
+      e.preventDefault();
+      isLockedRef.current = true;
 
-        const progress = relativeScroll / sectionHeight;
-        let newStep: number;
-        if (progress < 0.33) newStep = 0;
-        else if (progress < 0.66) newStep = 1;
-        else newStep = 2;
+      if (cooldownRef.current) return;
 
-        if (newStep !== prevStep.current) {
-          const newDir = newStep > prevStep.current ? "down" : "up";
-          prevStep.current = newStep;
-          setDirection(newDir);
+      accumulatedDelta.current += e.deltaY;
+
+      if (Math.abs(accumulatedDelta.current) >= DELTA_THRESHOLD) {
+        const goDown = accumulatedDelta.current > 0;
+        accumulatedDelta.current = 0;
+        cooldownRef.current = true;
+
+        const newStep = goDown
+          ? Math.min(currentStep + 1, 2)
+          : Math.max(currentStep - 1, 0);
+
+        if (newStep !== currentStep) {
+          prevStepRef.current = newStep;
+          setDirection(goDown ? "down" : "up");
           setActiveStep(newStep);
         }
-      });
+
+        setTimeout(() => {
+          cooldownRef.current = false;
+        }, 600);
+      }
     };
 
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
+    // Use non-passive to allow preventDefault
+    section.addEventListener("wheel", onWheel, { passive: false });
+    return () => section.removeEventListener("wheel", onWheel);
+  }, [isMobile]);
+
+  const prevStepRef = useRef(0);
+  // Keep ref in sync
+  useEffect(() => {
+    prevStepRef.current = activeStep;
+  }, [activeStep]);
+
+  // Scroll section into view when it's partially visible and lock starts
+  useEffect(() => {
+    if (isMobile) return;
+
+    const section = sectionRef.current;
+    if (!section) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && entry.intersectionRatio > 0.3) {
+          // Snap section to top when user scrolls into it
+          const rect = section.getBoundingClientRect();
+          if (rect.top > 0 && rect.top < 200) {
+            section.scrollIntoView({ behavior: "smooth", block: "start" });
+          }
+        }
+      },
+      { threshold: [0.3, 0.5, 0.7] }
+    );
+
+    observer.observe(section);
+    return () => observer.disconnect();
   }, [isMobile]);
 
   // Mobile version
@@ -511,44 +516,22 @@ export function FeaturesSection() {
     );
   }
 
-  // Desktop: tall section with sticky card — NO scroll hijacking
+  // Desktop: scroll-hijacked section — 100vh, no extra height
   return (
     <section
       id="recursos"
       ref={sectionRef}
       className="relative bg-gradient-to-b from-background via-muted/5 to-background"
-      style={{ height: "200vh", touchAction: "pan-y" }}
+      style={{ height: "100vh", overflow: "hidden" }}
     >
-      {/* Invisible sentinels for IntersectionObserver */}
       <div
-        ref={sentinel0}
-        data-step="0"
-        className="absolute left-0 w-full pointer-events-none"
-        style={{ top: "0%", height: "33.33%" }}
-      />
-      <div
-        ref={sentinel1}
-        data-step="1"
-        className="absolute left-0 w-full pointer-events-none"
-        style={{ top: "33.33%", height: "33.33%" }}
-      />
-      <div
-        ref={sentinel2}
-        data-step="2"
-        className="absolute left-0 w-full pointer-events-none"
-        style={{ top: "66.66%", height: "33.34%" }}
-      />
-
-      {/* Sticky container — stays in view while user scrolls through 300vh */}
-      <div
-        className="sticky top-[64px] flex flex-col items-center overflow-visible"
+        className="flex flex-col items-center overflow-visible h-full"
         style={{
-          height: "calc(100vh - 100px)",
           willChange: "transform",
           transform: "translateZ(0)",
         }}
       >
-        <div className="container px-4 h-full flex flex-col py-2">
+        <div className="container px-4 h-full flex flex-col py-4">
           {/* Header */}
           <div className="text-center mb-2 shrink-0">
             <Badge variant="secondary" className="mb-1">Recursos</Badge>
@@ -557,7 +540,7 @@ export function FeaturesSection() {
           </div>
 
           {/* Progress indicator */}
-          <div className="mb-2 shrink-0">
+          <div className="mb-3 shrink-0">
             <ProgressIndicator activeIndex={activeStep} />
           </div>
 
@@ -566,8 +549,8 @@ export function FeaturesSection() {
             className="relative flex-1 w-full mx-auto overflow-visible"
             style={{
               maxWidth: "min(880px, 92vw)",
-              minHeight: "min(340px, calc(100vh - 260px))",
-              maxHeight: "calc(100vh - 260px)",
+              minHeight: "min(380px, calc(100vh - 220px))",
+              maxHeight: "calc(100vh - 220px)",
             }}
           >
             <AnimatePresence mode="wait" initial={false}>
@@ -577,7 +560,7 @@ export function FeaturesSection() {
 
           {/* Scroll hint */}
           <motion.div
-            className="text-center mt-1 shrink-0"
+            className="text-center mt-2 shrink-0"
             animate={{ opacity: [0.5, 1, 0.5] }}
             transition={{ duration: 2, repeat: Infinity }}
           >
